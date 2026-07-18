@@ -4,7 +4,6 @@ A production-ready Enterprise Carpooling Platform designed for corporate environ
 
 ---
 
-## Technical Architecture
 
 ### Tech Stack
 - **Frontend**: React 19, Vite, React Router DOM v6, Tailwind CSS, Axios, Lucide React Icons, Framer Motion, React Hook Form, React Hot Toast.
