@@ -1,69 +1,35 @@
 import AuthService from '../services/authService.js';
 import ApiResponse from '../utils/ApiResponse.js';
 import { jwtConfig } from '../config/jwt.js';
-import { prisma } from '../config/db.js';
 
 class AuthController {
   /**
-   * Register a new corporate user with auto-organization detection and vehicle onboarding
+   * Register a new corporate user
    */
   static register = async (req, res) => {
-    const { email, password, name, phone, employee_id, own_vehicle, vehicle_number, vehicle_type } = req.body;
+    const {
+      firstName,
+      lastName,
+      employee_id,
+      email,
+      phone,
+      password,
+      organization,
+      department
+    } = req.body;
 
-    // Detect company from email domain
-    const emailDomain = email.split('@')[1];
-    const companyCode = emailDomain.split('.')[0].toUpperCase(); // e.g. GOOGLE or TCS
-
-    // Find or create organization on-the-fly
-    let org = await prisma.organization.findFirst({
-      where: { companyCode }
+    const user = await AuthService.register({
+      firstName,
+      lastName,
+      employee_id,
+      email,
+      phone,
+      password,
+      organization,
+      department
     });
 
-    if (!org) {
-      org = await prisma.organization.create({
-        data: {
-          name: `${companyCode} Corp`,
-          companyCode,
-          email: `admin@${emailDomain}`,
-          phone: phone || '1-800-555-0199',
-          address: 'Corporate Workspace Office',
-          status: 'ACTIVE'
-        }
-      });
-    }
-
-    // Map fields for standard AuthService registration
-    const userData = {
-      organization_id: org.id,
-      employee_id: employee_id || `EMP-${Date.now()}`,
-      name,
-      email,
-      password,
-      phone: phone || '9999999999',
-      role: 'EMPLOYEE',
-      department: 'Corporate Commute',
-      designation: 'Associate'
-    };
-
-    const user = await AuthService.register(userData);
-
-    // Register vehicle if owns_vehicle is checked in Step 2
-    if (own_vehicle === 'yes' || own_vehicle === true) {
-      await prisma.vehicle.create({
-        data: {
-          userId: user.id,
-          vehicleName: `${vehicle_type || 'Electric'} Car`,
-          brand: 'Generic',
-          model: vehicle_type || 'Commuter Sedan',
-          plateNumber: vehicle_number || `REG-${Date.now()}`,
-          fuelType: 'Electric',
-          seatCapacity: 4,
-          isDefault: true
-        }
-      });
-    }
-
-    // Execute standard login handshake to retrieve credentials
+    // Execute standard login handshake
     const { accessToken, refreshToken } = await AuthService.login(email, password);
 
     // Set refresh token inside an HTTP-only secure cookie
@@ -89,14 +55,12 @@ class AuthController {
    * Logout user and invalidate refresh token
    */
   static logout = async (req, res) => {
-    // Resolve token from cookie or request payload fallback
     const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
 
     if (refreshToken) {
       await AuthService.logout(refreshToken);
     }
 
-    // Clear client cookie
     res.clearCookie('refreshToken', {
       ...jwtConfig.cookieOptions,
       maxAge: 0
@@ -121,6 +85,24 @@ class AuthController {
   static me = async (req, res) => {
     const user = await AuthService.getCurrentUser(req.user.id);
     return new ApiResponse(200, user, 'User profile fetched successfully').send(res);
+  };
+
+  /**
+   * Request OTP code for forgot password
+   */
+  static forgotPassword = async (req, res) => {
+    const { email } = req.body;
+    const result = await AuthService.forgotPassword(email);
+    return new ApiResponse(200, result, 'Security key dispatched successfully').send(res);
+  };
+
+  /**
+   * Verify OTP and reset password
+   */
+  static resetPassword = async (req, res) => {
+    const { email, otp, password } = req.body;
+    const result = await AuthService.resetPassword(email, otp, password);
+    return new ApiResponse(200, result, 'Password reset completed successfully').send(res);
   };
 }
 

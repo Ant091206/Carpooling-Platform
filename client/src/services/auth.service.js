@@ -3,10 +3,9 @@ import api from './api.js';
 export const authService = {
   async login(email, password) {
     const response = await api.post('/auth/login', { email, password });
-    const { token, accessToken, refreshToken, user } = response.data.data;
-    const finalToken = accessToken || token;
+    const { accessToken, refreshToken, user } = response.data.data;
     
-    localStorage.setItem('token', finalToken);
+    localStorage.setItem('token', accessToken);
     if (refreshToken) {
       localStorage.setItem('refreshToken', refreshToken);
     }
@@ -17,16 +16,17 @@ export const authService = {
 
   async register(userData) {
     const response = await api.post('/auth/register', userData);
-    const { token, accessToken, refreshToken, user } = response.data.data;
-    const finalToken = accessToken || token;
+    return response.data.data.user;
+  },
 
-    localStorage.setItem('token', finalToken);
-    if (refreshToken) {
-      localStorage.setItem('refreshToken', refreshToken);
-    }
-    localStorage.setItem('user', JSON.stringify(user));
+  async registerCompany(companyData) {
+    const response = await api.post('/organization/register-company', companyData);
+    return response.data.data;
+  },
 
-    return user;
+  async lookupCompany(code) {
+    const response = await api.get(`/organization/lookup?code=${code}`);
+    return response.data.data;
   },
 
   async logout() {

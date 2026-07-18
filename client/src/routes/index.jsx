@@ -28,8 +28,8 @@ import SystemHealth from '../pages/system/SystemHealth.jsx';
 import SystemLogs from '../pages/system/SystemLogs.jsx';
 import SystemSettingsPage from '../pages/system/SystemSettingsPage.jsx';
 import NotFound from '../pages/NotFound.jsx';
-import Notifications from '../pages/Notifications.jsx';
-import NotificationSettings from '../pages/NotificationSettings.jsx';
+import ForgotPassword from '../pages/ForgotPassword.jsx';
+import OtpVerification from '../pages/OtpVerification.jsx';
 import CreateReport from '../pages/CreateReport.jsx';
 import ReportHistory from '../pages/ReportHistory.jsx';
 import Analytics from '../pages/Analytics.jsx';
@@ -60,13 +60,15 @@ export const ProtectedRoute = ({ children }) => {
 };
 
 export const PublicRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth();
   if (loading) return (
     <div className="grid min-h-[50vh] place-items-center">
       <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-200 border-t-emerald-600" />
     </div>
   );
-  if (isAuthenticated) return <Navigate to="/dashboard" replace />;
+  if (isAuthenticated) {
+    return <Navigate to={user?.role === 'ADMIN' ? '/admin' : '/dashboard'} replace />;
+  }
   return children;
 };
 
@@ -82,8 +84,21 @@ export const AdminRoute = ({ children }) => {
   return children;
 };
 
+export const EmployeeRoute = ({ children }) => {
+  const { user, isAuthenticated, loading } = useAuth();
+  if (loading) return (
+    <div className="grid min-h-[50vh] place-items-center">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-200 border-t-emerald-600" />
+    </div>
+  );
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (user?.role === 'ADMIN') return <Navigate to="/admin" replace />;
+  return children;
+};
+
 const protect = (Page) => <ProtectedRoute><Page /></ProtectedRoute>;
 const protectAdmin = (Page) => <AdminRoute><Page /></AdminRoute>;
+const protectEmployee = (Page) => <EmployeeRoute><Page /></EmployeeRoute>;
 
 export const appRoutes = [
   {
@@ -93,44 +108,49 @@ export const appRoutes = [
       { index: true,             element: <Home /> },
       { path: 'login',           element: <PublicRoute><Login /></PublicRoute> },
       { path: 'register',        element: <PublicRoute><Register /></PublicRoute> },
+      { path: 'forgot-password', element: <PublicRoute><ForgotPassword /></PublicRoute> },
+      { path: 'otp-verification', element: <PublicRoute><OtpVerification /></PublicRoute> },
+      
       { path: 'profile-setup',   element: protect(ProfileSetup) },
       { path: 'dashboard',       element: protect(Dashboard) },
 
       // Module 6 — Ride search, booking, driver management
-      { path: 'find-ride',       element: protect(FindRide) },
-      { path: 'offer-ride',      element: protect(OfferRide) },
-      { path: 'my-rides',        element: protect(MyRides) },
+      { path: 'find-ride',       element: protectEmployee(FindRide) },
+      { path: 'offer-ride',      element: protectEmployee(OfferRide) },
+      { path: 'my-rides',        element: protectEmployee(MyRides) },
 
       // Module 7 — Trips, wallet, reports
-      { path: 'my-trips',        element: protect(MyTrips) },
-      { path: 'trips/:tripId',   element: protect(TripDetail) },
-      { path: 'wallet',          element: <ProtectedRoute><LazyPage Component={WalletDashboard} /></ProtectedRoute> },
-      { path: 'wallet/recharge', element: <ProtectedRoute><LazyPage Component={RechargeWallet} /></ProtectedRoute> },
-      { path: 'wallet/history',  element: <ProtectedRoute><LazyPage Component={WalletHistory} /></ProtectedRoute> },
-      { path: 'wallet/transactions', element: protect(TransactionHistory) },
-      { path: 'wallet/transactions/:id', element: protect(PaymentDetailsPage) },
-      { path: 'payment',         element: <ProtectedRoute><LazyPage Component={PaymentPage} /></ProtectedRoute> },
-      { path: 'payment/history', element: <ProtectedRoute><LazyPage Component={PaymentHistory} /></ProtectedRoute> },
-      { path: 'payment/:id',     element: <ProtectedRoute><LazyPage Component={PaymentDetails} /></ProtectedRoute> },
+      { path: 'my-trips',        element: protectEmployee(MyTrips) },
+      { path: 'trips/:tripId',   element: protectEmployee(TripDetail) },
+      
+      { path: 'wallet',          element: <EmployeeRoute><LazyPage Component={WalletDashboard} /></EmployeeRoute> },
+      { path: 'wallet/recharge', element: <EmployeeRoute><LazyPage Component={RechargeWallet} /></EmployeeRoute> },
+      { path: 'wallet/history',  element: <EmployeeRoute><LazyPage Component={WalletHistory} /></EmployeeRoute> },
+      { path: 'wallet/transactions', element: protectEmployee(TransactionHistory) },
+      { path: 'wallet/transactions/:id', element: protectEmployee(PaymentDetailsPage) },
+      
+      { path: 'payment',         element: <EmployeeRoute><LazyPage Component={PaymentPage} /></EmployeeRoute> },
+      { path: 'payment/history', element: <EmployeeRoute><LazyPage Component={PaymentHistory} /></EmployeeRoute> },
+      { path: 'payment/:id',     element: <EmployeeRoute><LazyPage Component={PaymentDetails} /></EmployeeRoute> },
+      
       { path: 'ride-history',    element: protect(RideHistory) },
       { path: 'ride-history/:rideId', element: protect(RideDetailsHistory) },
+      
       { path: 'profile-reviews/:userId', element: protect(ReviewsProfile) },
+      
       { path: 'reports',         element: protect(Reports) },
       { path: 'reports/create',  element: protect(CreateReport) },
       { path: 'reports/history', element: protect(ReportHistory) },
       { path: 'analytics',       element: protect(Analytics) },
 
       // Supporting pages
-      { path: 'my-vehicle',      element: protect(MyVehicle) },
+      { path: 'my-vehicle',      element: protectEmployee(MyVehicle) },
       { path: 'settings',        element: protect(Settings) },
       { path: 'notifications',   element: protect(Notifications) },
       { path: 'settings/notifications', element: protect(NotificationSettings) },
 
-      // Module 12 — Notifications & Preferences
-      { path: 'notifications',   element: protect(Notifications) },
-      { path: 'settings/notifications', element: protect(NotificationSettings) },
-
       // Module 15 — System & DevOps Administration
+      { path: 'admin',           element: protectAdmin(SystemDashboard) },
       { path: 'system',          element: protectAdmin(SystemDashboard) },
       { path: 'system/health',   element: protectAdmin(SystemHealth) },
       { path: 'system/logs',     element: protectAdmin(SystemLogs) },

@@ -4,11 +4,38 @@ import { authMiddleware } from '../middleware/authMiddleware.js';
 import { roleMiddleware } from '../middleware/roleMiddleware.js';
 import { validateRequest } from '../middleware/validationMiddleware.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
-import { createOrganizationValidator, updateOrganizationValidator } from '../validators/organizationValidator.js';
+import {
+  createOrganizationValidator,
+  updateOrganizationValidator,
+  lookupOrganizationValidator,
+  registerCompanyValidator
+} from '../validators/organizationValidator.js';
 
 const router = Router();
 
-// Protect all routes with authentication middleware
+// ==========================================
+// Public Routes
+// ==========================================
+
+router.get(
+  '/lookup',
+  lookupOrganizationValidator,
+  validateRequest,
+  asyncHandler(OrganizationController.lookup)
+);
+
+router.post(
+  '/register-company',
+  registerCompanyValidator,
+  validateRequest,
+  asyncHandler(OrganizationController.registerCompany)
+);
+
+// ==========================================
+// Protected Routes
+// ==========================================
+
+// Protect all following routes with authentication middleware
 router.use(authMiddleware);
 
 // Organization API Routes

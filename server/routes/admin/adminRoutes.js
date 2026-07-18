@@ -26,7 +26,7 @@ router.get(
     query('limit').optional().isInt({ min: 1, max: 100 }),
     query('search').optional().isString(),
     query('role').optional().isIn(['ADMIN', 'EMPLOYEE']),
-    query('status').optional().isIn(['ACTIVE', 'INACTIVE', 'PENDING', 'SUSPENDED']),
+    query('status').optional().isIn(['ACTIVE', 'INACTIVE']),
   ],
   validateRequest,
   adminController.getUsers
@@ -43,7 +43,7 @@ router.patch(
   '/users/:id/status',
   [
     param('id').isInt({ min: 1 }).withMessage('Valid user ID is required.'),
-    body('status').isIn(['ACTIVE', 'INACTIVE', 'PENDING', 'SUSPENDED']).withMessage('Valid status is required.'),
+    body('status').isIn(['ACTIVE', 'INACTIVE']).withMessage('Valid status is required.'),
   ],
   validateRequest,
   adminController.updateUserStatus

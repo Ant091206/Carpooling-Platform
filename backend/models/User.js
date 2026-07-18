@@ -9,33 +9,34 @@ class User {
     const user = await prisma.user.findUnique({
       where: { id },
       include: {
-        organization: true
+        organizationObj: true
       }
     });
 
     if (!user) return null;
 
-    // Map output to ensure 100% database field compatibility with mysql2 outputs
+    // Map output to ensure 100% database field compatibility with other systems
     return {
       ...user,
+      name: `${user.firstName} ${user.lastName}`.trim(),
       organization_id: user.organizationId,
       employee_id: user.employeeId,
       last_login: user.lastLogin,
       created_at: user.createdAt,
       updated_at: user.updatedAt,
-      organization_name: user.organization.name
+      organization_name: user.organizationObj ? user.organizationObj.name : user.organization
     };
   }
 
   /**
-   * Find user metadata by email (retains password for credentials checking)
+   * Find user metadata by email (retains password/hash for credentials checking)
    * @param {string} email Email address
    */
   static async findByEmail(email) {
     const user = await prisma.user.findUnique({
       where: { email },
       include: {
-        organization: true
+        organizationObj: true
       }
     });
 
@@ -43,12 +44,13 @@ class User {
 
     return {
       ...user,
+      name: `${user.firstName} ${user.lastName}`.trim(),
       organization_id: user.organizationId,
       employee_id: user.employeeId,
       last_login: user.lastLogin,
       created_at: user.createdAt,
       updated_at: user.updatedAt,
-      organization_name: user.organization.name
+      organization_name: user.organizationObj ? user.organizationObj.name : user.organization
     };
   }
 
@@ -58,32 +60,39 @@ class User {
    */
   static async create(userData) {
     const {
-      organization_id,
+      firstName,
+      lastName,
       employee_id,
-      name,
       email,
-      password,
+      passwordHash,
       phone = null,
       department = null,
       designation = null,
       avatar = null,
+      organization,
+      organization_id = null,
       role = 'EMPLOYEE',
-      status = 'ACTIVE'
+      status = 'ACTIVE',
+      isVerified = false
     } = userData;
 
     const user = await prisma.user.create({
       data: {
-        organizationId: organization_id,
+        firstName,
+        lastName,
+        name: `${firstName} ${lastName}`.trim(),
         employeeId: employee_id,
-        name,
         email,
-        password,
+        passwordHash,
         phone,
         department,
         designation,
         avatar,
+        organization,
+        organizationId: organization_id,
         role,
-        status
+        status,
+        isVerified
       }
     });
 
@@ -105,19 +114,30 @@ class User {
   }
 
   /**
-   * Update user profile fields
+   * Update user profile fields (name / firstName + lastName, phone, department, designation)
    * @param {number} id Record ID
-   * @param {object} param1 Fields to update: name, phone, department, designation
+   * @param {object} profileData Fields to update
    */
-  static async updateProfile(id, { name, phone, department, designation }) {
+  static async updateProfile(id, { name, firstName, lastName, phone, department, designation }) {
+    let fName = firstName;
+    let lName = lastName;
+
+    if (name && (!fName || !lName)) {
+      const parts = name.trim().split(/\s+/);
+      fName = parts[0] || '';
+      lName = parts.slice(1).join(' ') || '';
+    }
+
+    const updateData = {};
+    if (fName !== undefined) updateData.firstName = fName;
+    if (lName !== undefined) updateData.lastName = lName;
+    if (phone !== undefined) updateData.phone = phone;
+    if (department !== undefined) updateData.department = department;
+    if (designation !== undefined) updateData.designation = designation;
+
     const user = await prisma.user.update({
       where: { id },
-      data: {
-        name,
-        phone,
-        department,
-        designation
-      }
+      data: updateData
     });
     return !!user;
   }

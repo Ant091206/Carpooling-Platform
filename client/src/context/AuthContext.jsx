@@ -50,8 +50,10 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     setLoading(true);
     try {
-      const registeredUser = await authService.register(userData);
-      setUser(registeredUser);
+      await authService.register(userData);
+      // Immediately call login with same email and password
+      const loggedUser = await authService.login(userData.email, userData.password);
+      setUser(loggedUser);
       return { success: true };
     } catch (error) {
       return {
@@ -60,6 +62,32 @@ export const AuthProvider = ({ children }) => {
       };
     } finally {
       setLoading(false);
+    }
+  };
+
+  const registerCompany = async (companyData) => {
+    setLoading(true);
+    try {
+      await authService.registerCompany(companyData);
+      // Immediately login using the newly created admin account
+      const loggedUser = await authService.login(companyData.admin_email, companyData.admin_password);
+      setUser(loggedUser);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Company registration failed.'
+      };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const lookupCompany = async (code) => {
+    try {
+      return await authService.lookupCompany(code);
+    } catch (error) {
+      return null;
     }
   };
 
@@ -93,6 +121,8 @@ export const AuthProvider = ({ children }) => {
     loading,
     login,
     register,
+    registerCompany,
+    lookupCompany,
     logout,
     updateProfile,
     isAuthenticated: !!user

@@ -4,10 +4,7 @@ import { Car, ChevronDown, LogOut, Menu, User, X, Activity } from 'lucide-react'
 import Button from './Button.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import NotificationBell from '../notifications/NotificationBell.jsx';
-<<<<<<< HEAD
-=======
 import { useNotifications } from '../../context/NotificationContext.jsx';
->>>>>>> 7a57a61ce29369380aa6e4b39459103a5ff866b9
 
 const baseAppLinks = [
   ['Dashboard',  '/dashboard'],

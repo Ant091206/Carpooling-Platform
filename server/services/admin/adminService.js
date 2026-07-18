@@ -184,7 +184,7 @@ class AdminService {
    */
   async updateUserStatus(adminId, userId, status) {
     const id = parseInt(userId, 10);
-    const validStatuses = ['ACTIVE', 'INACTIVE', 'PENDING', 'SUSPENDED'];
+    const validStatuses = ['ACTIVE', 'INACTIVE'];
     if (!validStatuses.includes(status)) {
       throw new ApiError(400, `Invalid status. Allowed: ${validStatuses.join(', ')}`);
     }

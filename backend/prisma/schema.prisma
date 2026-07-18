@@ -7,61 +7,111 @@ generator client {
   provider = "prisma-client-js"
 }
 
-enum OrgStatus {
-  ACTIVE
-  INACTIVE
-  SUSPENDED
-}
-
-enum UserStatus {
-  ACTIVE
-  INACTIVE
-  PENDING
-  SUSPENDED
-}
-
 enum Role {
   ADMIN
   EMPLOYEE
 }
 
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum VehicleType {
+  CAR
+  SUV
+  SEDAN
+  HATCHBACK
+}
+
+enum BookingStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+}
+
+enum RideStatus {
+  SCHEDULED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  WALLET
+  RAZORPAY
+}
+
+enum NotificationPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum NotificationCategory {
+  BOOKING
+  PAYMENT
+  RIDE
+  REMINDER
+  SYSTEM
+  PROFILE
+}
+
 model Organization {
-  id          Int        @id @default(autoincrement()) @db.UnsignedInt
-  name        String     @db.VarChar(150)
-  companyCode String     @unique @map("company_code") @db.VarChar(50)
-  email       String     @db.VarChar(100)
-  phone       String?    @db.VarChar(20)
-  address     String?    @db.Text
-  logo        String?    @db.VarChar(255)
-  website     String?    @db.VarChar(255)
-  status      OrgStatus  @default(ACTIVE)
-  createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt   DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+  id          Int            @id @default(autoincrement()) @db.UnsignedInt
+  name        String         @db.VarChar(150)
+  companyCode String         @unique @map("company_code") @db.VarChar(50)
+  email       String         @db.VarChar(100)
+  phone       String?        @db.VarChar(20)
+  logo        String?        @db.VarChar(255)
+  address     String?        @db.VarChar(255)
+  industry    String?        @db.VarChar(100)
+  status      UserStatus     @default(ACTIVE)
+  createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt   DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
 
   users       User[]
 
-  @@index([status], map: "idx_org_status")
   @@map("organizations")
 }
 
 model User {
   id             Int            @id @default(autoincrement()) @db.UnsignedInt
-  organizationId Int            @map("organization_id") @db.UnsignedInt
+  uuid           String         @unique @default(uuid()) @db.VarChar(36)
   employeeId     String         @map("employee_id") @db.VarChar(50)
+  firstName      String         @map("first_name") @db.VarChar(50)
+  lastName       String         @map("last_name") @db.VarChar(50)
   name           String         @db.VarChar(100)
   email          String         @unique @db.VarChar(100)
-  password       String         @db.VarChar(255)
   phone          String?        @db.VarChar(20)
+  passwordHash   String         @map("password_hash") @db.VarChar(255)
+  organization   String         @db.VarChar(150)
   department     String?        @db.VarChar(100)
-  designation    String?        @db.VarChar(100)
-  avatar         String?        @db.VarChar(255)
   role           Role           @default(EMPLOYEE)
+  isVerified     Boolean        @default(false) @map("is_verified")
   status         UserStatus     @default(ACTIVE)
-  lastLogin      DateTime?      @map("last_login") @db.Timestamp(0)
   createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt      DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
 
-  organization      Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  // Forgot password OTP fields
+  otpCode        String?        @map("otp_code") @db.VarChar(10)
+  otpExpiresAt   DateTime?      @map("otp_expires_at") @db.Timestamp(0)
+
+  // Backward compatibility fields
+  lastLogin      DateTime?      @map("last_login") @db.Timestamp(0)
+  avatar         String?        @db.VarChar(255)
+  designation    String?        @db.VarChar(100)
+  organizationId Int?           @map("organization_id") @db.UnsignedInt
+
+  organizationObj   Organization?  @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   refreshTokens     RefreshToken[]
   savedPlaces       SavedPlace[]
   vehicles          Vehicle[]
@@ -72,8 +122,19 @@ model User {
   walletTransactions WalletTransaction[]
   paymentsPaid      Payment[]      @relation("PaymentPayer")
   paymentsReceived  Payment[]      @relation("PaymentReceiver")
+  reviewsGiven       RideReview[]   @relation("ReviewsGiven")
+  reviewsReceived    RideReview[]   @relation("ReviewsReceived")
+  driverHistories    RideHistory[]  @relation("DriverHistory")
+  passengerHistories RideHistory[]  @relation("PassengerHistory")
+  notifications            Notification[]
+  notificationPreference   NotificationPreference?
+  emailQueue               EmailQueue[]
+  systemLogs               SystemLog[]
+  adminActivities          AdminActivity[]        @relation("AdminActivities")
+  reports                  Report[]               @relation("UserReports")
+  matchPreference          MatchPreference?       @relation("UserMatchPreferences")
 
-  @@unique([organizationId, employeeId], name: "idx_user_org_emp")
+  @@unique([organization, employeeId], name: "idx_user_org_emp")
   @@index([role], map: "idx_user_role")
   @@index([status], map: "idx_user_status")
   @@map("users")
@@ -110,184 +171,291 @@ model RefreshToken {
 }
 
 model Vehicle {
-  id          Int      @id @default(autoincrement()) @db.UnsignedInt
-  userId      Int      @map("user_id") @db.UnsignedInt
-  model       String   @db.VarChar(100)
-  plateNumber String   @unique @map("plate_number") @db.VarChar(50)
-  color       String   @db.VarChar(50)
-  capacity    Int      @db.Int
-  type        String?  @db.VarChar(50)
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+  id                 Int         @id @default(autoincrement()) @db.UnsignedInt
+  userId             Int         @map("user_id") @db.UnsignedInt
+  vehicleName        String      @map("vehicle_name") @db.VarChar(100)
+  vehicleType        VehicleType @map("vehicle_type")
+  brand              String      @db.VarChar(50)
+  model              String      @db.VarChar(50)
+  color              String      @db.VarChar(30)
+  plateNumber        String      @unique @map("plate_number") @db.VarChar(20)
+  registrationNumber String      @map("registration_number") @db.VarChar(50)
+  insuranceNumber    String      @map("insurance_number") @db.VarChar(50)
+  seatCapacity       Int         @map("seat_capacity") @db.TinyInt
+  fuelType           String      @map("fuel_type") @db.VarChar(20)
+  isVerified         Int         @default(0) @map("is_verified") @db.TinyInt
+  isDefault          Int         @default(0) @map("is_default") @db.TinyInt
+  status             String      @default("ACTIVE") @db.VarChar(20)
+  createdAt          DateTime    @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt          DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
 
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  rides       Ride[]
+  owner              User        @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  rides              Ride[]
 
   @@index([userId], map: "idx_vehicles_user_id")
   @@map("vehicles")
 }
 
 model Ride {
-  id                  Int          @id @default(autoincrement()) @db.UnsignedInt
-  driverId            Int          @map("driver_id") @db.UnsignedInt
-  vehicleId           Int          @map("vehicle_id") @db.UnsignedInt
-  pickupName          String       @map("pickup_name") @db.VarChar(255)
-  pickupLocation      Unsupported("point") @map("pickup_location")
-  destinationName     String       @map("destination_name") @db.VarChar(255)
-  destinationLocation Unsupported("point") @map("destination_location")
-  departureTime       DateTime     @map("departure_time") @db.DateTime(0)
-  availableSeats      Int          @map("available_seats") @db.Int
-  farePerSeat         Decimal      @map("fare_per_seat") @db.Decimal(10, 2)
-  distanceKm          Decimal?     @map("distance_km") @db.Decimal(10, 2)
-  estimatedDuration   Int?         @map("estimated_duration") @db.Int
-  routeGeometry       String?      @map("route_geometry") @db.LongText
-  rideStatus          RideStatus   @default(Scheduled) @map("ride_status")
-  isRecurring         Boolean      @default(false) @map("is_recurring")
-  notes               String?      @db.Text
-  createdAt           DateTime     @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt           DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+  id             Int          @id @default(autoincrement()) @db.UnsignedInt
+  userId         Int          @map("user_id") @db.UnsignedInt
+  vehicleId      Int          @map("vehicle_id") @db.UnsignedInt
+  startLocation  String       @map("start_location") @db.VarChar(255)
+  endLocation    String       @map("end_location") @db.VarChar(255)
+  startLatitude  Decimal      @map("start_latitude") @db.Decimal(10, 8)
+  startLongitude Decimal      @map("start_longitude") @db.Decimal(11, 8)
+  endLatitude    Decimal      @map("end_latitude") @db.Decimal(10, 8)
+  endLongitude   Decimal      @map("end_longitude") @db.Decimal(11, 8)
+  departureTime  DateTime     @map("departure_time") @db.Timestamp(0)
+  availableSeats Int          @map("available_seats") @db.TinyInt
+  pricePerSeat   Decimal      @map("price_per_seat") @db.Decimal(10, 2)
+  status         RideStatus   @default(SCHEDULED)
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt      DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
 
-  driver              User         @relation(fields: [driverId], references: [id], onDelete: Cascade)
-  vehicle             Vehicle      @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
-  bookings            Booking[]
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  vehicle        Vehicle      @relation(fields: [vehicleId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  bookings       Booking[]
+  payments       Payment[]
+  reviews        RideReview[]
+  rideHistories  RideHistory[]
+  routeMatches   RouteMatch[]
 
-  @@index([driverId], map: "idx_rides_driver_id")
-  @@index([departureTime], map: "idx_rides_departure_time")
-  @@index([rideStatus], map: "idx_rides_status")
+  @@index([userId], map: "idx_rides_user_id")
+  @@index([vehicleId], map: "idx_rides_vehicle_id")
   @@map("rides")
-}
-
-enum RideStatus {
-  Scheduled
-  Started
-  InProgress @map("In Progress")
-  Completed
-  Cancelled
-}
-
-enum BookingStatus {
-  PENDING
-  ACCEPTED
-  REJECTED
-  CANCELLED
-  COMPLETED
 }
 
 model Booking {
   id             Int           @id @default(autoincrement()) @db.UnsignedInt
   rideId         Int           @map("ride_id") @db.UnsignedInt
-  passengerId    Int           @map("passenger_id") @db.UnsignedInt
-  driverId       Int           @map("driver_id") @db.UnsignedInt
-  requestedSeats Int           @map("requested_seats") @db.Int
+  userId         Int           @map("user_id") @db.UnsignedInt
+  seatsBooked    Int           @map("seats_booked") @db.TinyInt
+  totalPrice     Decimal       @map("total_price") @db.Decimal(10, 2)
   status         BookingStatus @default(PENDING)
-  bookingDate    DateTime      @default(now()) @map("booking_date") @db.Timestamp(0)
   createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt      DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
 
-  ride      Ride    @relation(fields: [rideId], references: [id], onDelete: Cascade)
-  passenger User    @relation("PassengerBookings", fields: [passengerId], references: [id], onDelete: Cascade)
-  driver    User    @relation("DriverBookings", fields: [driverId], references: [id], onDelete: Cascade)
-  payment   Payment?
+  ride           Ride          @relation(fields: [rideId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  passenger      User          @relation("PassengerBookings", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  driver         User          @relation("DriverBookings", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  payments       Payment[]
 
-  @@index([rideId], map: "idx_booking_ride_id")
-  @@index([passengerId], map: "idx_booking_passenger_id")
-  @@index([driverId], map: "idx_booking_driver_id")
+  @@index([rideId], map: "idx_bookings_ride_id")
+  @@index([userId], map: "idx_bookings_user_id")
   @@map("bookings")
 }
 
-// ─── Module 10: Wallet & Payments ──────────────────────────────────────────────
-
-enum WalletStatus {
-  ACTIVE
-  SUSPENDED
-  CLOSED
-}
-
-enum TransactionType {
-  RECHARGE
-  RIDE_PAYMENT
-  REFUND
-  ADJUSTMENT
-  REWARD
-}
-
-enum PaymentMethod {
-  WALLET
-  CASH
-  UPI
-  RAZORPAY
-}
-
-enum PaymentStatus {
-  PENDING
-  SUCCESS
-  FAILED
-  REFUNDED
-}
-
 model Wallet {
-  id           Int                 @id @default(autoincrement()) @db.UnsignedInt
-  userId       Int                 @unique @map("user_id") @db.UnsignedInt
-  balance      Decimal             @default(0.00) @db.Decimal(12, 2)
-  status       WalletStatus        @default(ACTIVE)
-  createdAt    DateTime            @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt    DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+  id             Int                 @id @default(autoincrement()) @db.UnsignedInt
+  userId         Int                 @unique @map("user_id") @db.UnsignedInt
+  balance        Decimal             @default(0.00) @db.Decimal(10, 2)
+  createdAt      DateTime            @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt      DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
 
-  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  transactions WalletTransaction[]
+  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  transactions   WalletTransaction[]
 
-  @@index([status], map: "idx_wallet_status")
   @@map("wallets")
 }
 
 model WalletTransaction {
-  id              Int             @id @default(autoincrement()) @db.UnsignedInt
-  walletId        Int             @map("wallet_id") @db.UnsignedInt
-  userId          Int             @map("user_id") @db.UnsignedInt
-  bookingId       Int?            @map("booking_id") @db.UnsignedInt
-  paymentId       Int?            @map("payment_id") @db.UnsignedInt
-  transactionType TransactionType @map("transaction_type")
-  amount          Decimal         @db.Decimal(12, 2)
-  balanceBefore   Decimal         @map("balance_before") @db.Decimal(12, 2)
-  balanceAfter    Decimal         @map("balance_after") @db.Decimal(12, 2)
-  referenceNo     String          @unique @map("reference_no") @db.VarChar(64)
-  description     String?         @db.VarChar(255)
-  status          PaymentStatus   @default(SUCCESS)
-  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamp(0)
+  id          Int      @id @default(autoincrement()) @db.UnsignedInt
+  walletId    Int      @map("wallet_id") @db.UnsignedInt
+  amount      Decimal  @db.Decimal(10, 2)
+  type        String   @db.VarChar(20)
+  description String?  @db.VarChar(255)
+  referenceId String?  @map("reference_id") @db.VarChar(100)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(0)
 
-  wallet  Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  wallet      Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  @@index([walletId], map: "idx_txn_wallet_id")
-  @@index([userId], map: "idx_txn_user_id")
-  @@index([bookingId], map: "idx_txn_booking_id")
-  @@index([transactionType], map: "idx_txn_type")
-  @@index([status], map: "idx_txn_status")
+  @@index([walletId], map: "idx_wallet_transactions_wallet_id")
   @@map("wallet_transactions")
 }
 
 model Payment {
-  id                   Int           @id @default(autoincrement()) @db.UnsignedInt
-  bookingId            Int           @unique @map("booking_id") @db.UnsignedInt
-  payerId              Int           @map("payer_id") @db.UnsignedInt
-  receiverId           Int           @map("receiver_id") @db.UnsignedInt
-  paymentMethod        PaymentMethod @map("payment_method")
-  amount               Decimal       @db.Decimal(12, 2)
-  status               PaymentStatus @default(PENDING)
-  transactionReference String?       @map("transaction_reference") @db.VarChar(128)
-  gatewayOrderId       String?       @map("gateway_order_id") @db.VarChar(128)
-  gatewayPaymentId     String?       @map("gateway_payment_id") @db.VarChar(128)
-  gatewaySignature     String?       @map("gateway_signature") @db.VarChar(256)
-  paidAt               DateTime?     @map("paid_at") @db.Timestamp(0)
-  createdAt            DateTime      @default(now()) @map("created_at") @db.Timestamp(0)
+  id               Int           @id @default(autoincrement()) @db.UnsignedInt
+  rideId           Int           @map("ride_id") @db.UnsignedInt
+  bookingId        Int           @map("booking_id") @db.UnsignedInt
+  payerId          Int           @map("payer_id") @db.UnsignedInt
+  payeeId          Int           @map("payee_id") @db.UnsignedInt
+  amount           Decimal       @db.Decimal(10, 2)
+  method           PaymentMethod
+  status           PaymentStatus @default(PENDING)
+  transactionId    String?       @map("transaction_id") @db.VarChar(100)
+  razorpayOrderId  String?       @map("razorpay_order_id") @db.VarChar(100)
+  razorpayPaymentId String?      @map("razorpay_payment_id") @db.VarChar(100)
+  razorpaySignature String?      @map("razorpay_signature") @db.VarChar(255)
+  createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt        DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
 
-  booking  Booking @relation(fields: [bookingId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  payer    User    @relation("PaymentPayer", fields: [payerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  receiver User    @relation("PaymentReceiver", fields: [receiverId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  ride             Ride          @relation(fields: [rideId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  booking          Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  payer            User          @relation("PaymentPayer", fields: [payerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  payee            User          @relation("PaymentReceiver", fields: [payeeId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  @@index([payerId], map: "idx_payment_payer")
-  @@index([receiverId], map: "idx_payment_receiver")
-  @@index([status], map: "idx_payment_status")
-  @@index([paymentMethod], map: "idx_payment_method")
+  @@index([rideId], map: "idx_payments_ride_id")
+  @@index([bookingId], map: "idx_payments_booking_id")
+  @@index([payerId], map: "idx_payments_payer_id")
+  @@index([payeeId], map: "idx_payments_payee_id")
   @@map("payments")
+}
+
+model RideReview {
+  id          Int      @id @default(autoincrement()) @db.UnsignedInt
+  rideId      Int      @map("ride_id") @db.UnsignedInt
+  reviewerId  Int      @map("reviewer_id") @db.UnsignedInt
+  revieweeId  Int      @map("reviewee_id") @db.UnsignedInt
+  rating      Int      @db.TinyInt
+  review      String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+
+  ride        Ride     @relation(fields: [rideId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  reviewer    User     @relation("ReviewsGiven", fields: [reviewerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  reviewee    User     @relation("ReviewsReceived", fields: [revieweeId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([rideId], map: "idx_reviews_ride_id")
+  @@index([reviewerId], map: "idx_reviews_reviewer_id")
+  @@index([revieweeId], map: "idx_reviews_reviewee_id")
+  @@map("ride_reviews")
+}
+
+model RideHistory {
+  id          Int      @id @default(autoincrement()) @db.UnsignedInt
+  rideId      Int      @map("ride_id") @db.UnsignedInt
+  driverId    Int      @map("driver_id") @db.UnsignedInt
+  passengerId Int      @map("passenger_id") @db.UnsignedInt
+  status      String   @db.VarChar(50)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+
+  ride        Ride     @relation(fields: [rideId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  driver      User     @relation("DriverHistory", fields: [driverId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  passenger   User     @relation("PassengerHistory", fields: [passengerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([rideId], map: "idx_history_ride_id")
+  @@index([driverId], map: "idx_history_driver_id")
+  @@index([passengerId], map: "idx_history_passenger_id")
+  @@map("ride_histories")
+}
+
+model Notification {
+  id         Int                  @id @default(autoincrement()) @db.UnsignedInt
+  userId     Int                  @map("user_id") @db.UnsignedInt
+  title      String               @db.VarChar(100)
+  message    String               @db.Text
+  type       String               @default("INFO") @db.VarChar(20)
+  category   NotificationCategory @default(SYSTEM)
+  isRead     Boolean              @default(false) @map("is_read")
+  actionUrl  String?              @map("action_url") @db.VarChar(255)
+  createdAt  DateTime             @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt  DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  user       User                 @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId], map: "idx_notifications_user_id")
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  id             Int     @id @default(autoincrement()) @db.UnsignedInt
+  userId         Int     @unique @map("user_id") @db.UnsignedInt
+  bookingAlerts  Boolean @default(true) @map("booking_alerts")
+  paymentAlerts  Boolean @default(true) @map("payment_alerts")
+  rideReminders  Boolean @default(true) @map("ride_reminders")
+  marketingPromo Boolean @default(false) @map("marketing_promo")
+
+  user           User    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("notification_preferences")
+}
+
+model EmailQueue {
+  id          Int      @id @default(autoincrement()) @db.UnsignedInt
+  userId      Int      @map("user_id") @db.UnsignedInt
+  recipient   String   @db.VarChar(100)
+  subject     String   @db.VarChar(150)
+  body        String   @db.Text
+  status      String   @default("PENDING") @db.VarChar(20)
+  attempts    Int      @default(0) @db.TinyInt
+  lastAttempt DateTime? @map("last_attempt") @db.Timestamp(0)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId], map: "idx_email_queue_user_id")
+  @@map("email_queue")
+}
+
+model SystemLog {
+  id        Int      @id @default(autoincrement()) @db.UnsignedInt
+  userId    Int?     @map("user_id") @db.UnsignedInt
+  level     String   @db.VarChar(20)
+  message   String   @db.Text
+  metadata  Json?
+  timestamp DateTime @default(now()) @db.Timestamp(0)
+
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([userId], map: "idx_system_logs_user_id")
+  @@map("system_logs")
+}
+
+model AdminActivity {
+  id        Int      @id @default(autoincrement()) @db.UnsignedInt
+  adminId   Int      @map("admin_id") @db.UnsignedInt
+  action    String   @db.VarChar(100)
+  details   String   @db.Text
+  ipAddress String?  @map("ip_address") @db.VarChar(45)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+
+  admin     User     @relation("AdminActivities", fields: [adminId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([adminId], map: "idx_admin_activities_admin_id")
+  @@map("admin_activities")
+}
+
+model Report {
+  id        Int      @id @default(autoincrement()) @db.UnsignedInt
+  userId    Int      @map("user_id") @db.UnsignedInt
+  title     String   @db.VarChar(150)
+  type      String   @db.VarChar(50)
+  status    String   @default("PENDING") @db.VarChar(20)
+  fileUrl   String?  @map("file_url") @db.VarChar(255)
+  filters   Json?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+
+  user      User     @relation("UserReports", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId], map: "idx_reports_user_id")
+  @@map("reports")
+}
+
+model MatchPreference {
+  id             Int      @id @default(autoincrement()) @db.UnsignedInt
+  userId         Int      @unique @map("user_id") @db.UnsignedInt
+  maxDetourDistance Float    @default(5.0) @map("max_detour_distance") @db.Float
+  sameGenderOnly Boolean  @default(false) @map("same_gender_only")
+  preferredRoles String?  @map("preferred_roles") @db.VarChar(50)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  user           User     @relation("UserMatchPreferences", fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("match_preferences")
+}
+
+model RouteMatch {
+  id            Int      @id @default(autoincrement()) @db.UnsignedInt
+  rideId        Int      @map("ride_id") @db.UnsignedInt
+  passengerId   Int      @map("passenger_id") @db.UnsignedInt
+  score         Float    @db.Float
+  detourDistance Float   @map("detour_distance") @db.Float
+  status        String   @default("PENDING") @db.VarChar(20)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+
+  ride          Ride     @relation(fields: [rideId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([rideId], map: "idx_route_matches_ride_id")
+  @@map("route_matches")
 }

@@ -12,6 +12,23 @@ class OrganizationController {
   };
 
   /**
+   * Lookup organization by company code (Public)
+   */
+  static lookup = async (req, res) => {
+    const { code } = req.query;
+    const org = await OrganizationService.lookupByCompanyCode(code);
+    return new ApiResponse(200, org, 'Organization resolved successfully').send(res);
+  };
+
+  /**
+   * Self-serve company registration with admin account (Public)
+   */
+  static registerCompany = async (req, res) => {
+    const data = await OrganizationService.registerCompanyWithAdmin(req.body);
+    return new ApiResponse(201, data, 'Company and administrator registered successfully').send(res);
+  };
+
+  /**
    * Get authenticated user's own organization details
    */
   static getOwnOrganization = async (req, res) => {

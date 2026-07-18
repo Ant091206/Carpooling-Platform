@@ -1,100 +1,100 @@
-import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { useNavigate, Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { Mail, Loader2, ArrowLeft, Send, ShieldAlert } from 'lucide-react';
+import { Mail, ArrowLeft, Send, ShieldAlert } from 'lucide-react';
+import api from '../services/api.js';
+import Button from '../components/ui/Button.jsx';
+import Input from '../components/ui/Input.jsx';
+import Card from '../components/ui/Card.jsx';
+
+const forgotSchema = z.object({
+  email: z.string().email('Please enter a valid work email').min(1, 'Email is required')
+});
 
 export default function ForgotPassword() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
+    resolver: zodResolver(forgotSchema),
+    mode: 'onChange'
+  });
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!email) {
-      toast.error('Please enter your work email.');
-      return;
+  const onSubmit = async (data) => {
+    try {
+      const res = await api.post('/auth/forgot-password', { email: data.email });
+      toast.success(res.data?.message || 'Security reset code sent to your email.');
+      navigate('/otp-verification', { state: { email: data.email } });
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to dispatch security code.');
     }
-
-    setLoading(true);
-    // Simulate sending OTP message for high fidelity UI
-    setTimeout(() => {
-      setLoading(false);
-      toast.success('Security reset code sent to your email.');
-      navigate('/otp-verification', { state: { email } });
-    }, 1500);
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans flex items-center justify-center p-6">
-      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#16A34A]/5 rounded-full blur-[120px]" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-[#22C55E]/5 rounded-full blur-[120px]" />
+    <div className="min-h-screen bg-[#F8FAFC] font-sans flex items-center justify-center p-6 relative overflow-hidden">
+      {/* Blurred background glows */}
+      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#10B981]/5 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-[#14B8A6]/5 rounded-full blur-[120px] pointer-events-none" />
 
-      <div className="max-w-md w-full bg-white rounded-3xl p-8 sm:p-10 border border-slate-200 shadow-xl shadow-slate-100/50 space-y-8 relative z-10 animate-slide-up">
-        
-        {/* Header Back Link */}
-        <div className="flex items-center">
-          <Link to="/login" className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors">
-            <ArrowLeft className="h-4 w-4" />
-            <span>Back to Login</span>
-          </Link>
-        </div>
-
-        {/* Branding & Status Info */}
-        <div className="space-y-3 text-center">
-          <div className="mx-auto w-12 h-12 bg-amber-50 border border-amber-200 text-amber-500 rounded-2xl flex items-center justify-center shadow-inner">
-            <ShieldAlert className="h-6 w-6" />
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: 'easeOut' }}
+        className="max-w-md w-full"
+      >
+        <Card className="p-8 sm:p-10 border border-[#E2E8F0] shadow-xl shadow-slate-100/50 space-y-6 bg-white rounded-3xl relative z-10">
+          
+          {/* Header Back Link */}
+          <div className="flex items-center">
+            <Link to="/login" className="inline-flex items-center gap-1.5 text-xs font-bold text-[#64748B] hover:text-[#0F172A] transition-colors">
+              <ArrowLeft className="h-4 w-4" />
+              <span>Back to Login</span>
+            </Link>
           </div>
-          <div className="space-y-1">
-            <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Forgot Password?</h2>
-            <p className="text-slate-500 text-sm font-medium">
-              We'll send a 6-digit OTP to your registered corporate email to reset your session credentials.
-            </p>
-          </div>
-        </div>
 
-        {/* Input Form */}
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
-              Work Email Address
-            </label>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400">
-                <Mail className="h-5 w-5" />
-              </span>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 text-sm rounded-xl outline-none focus:border-[#16A34A] focus:bg-white focus:ring-1 focus:ring-[#16A34A] transition-all"
-                placeholder="you@company.com"
-                required
-              />
+          {/* Branding & Status Info */}
+          <div className="space-y-3 text-center">
+            <div className="mx-auto w-12 h-12 bg-amber-50 border border-amber-200 text-amber-500 rounded-2xl flex items-center justify-center shadow-inner">
+              <ShieldAlert className="h-6 w-6" />
+            </div>
+            <div className="space-y-1">
+              <h2 className="text-2xl font-extrabold text-[#0F172A] tracking-tight">Forgot Password?</h2>
+              <p className="text-[#64748B] text-sm font-medium">
+                We'll send a 6-digit OTP to your registered corporate email to reset your credentials.
+              </p>
             </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 px-4 bg-[#16A34A] hover:bg-[#15803D] text-white font-bold rounded-xl shadow-lg shadow-green-600/10 hover:shadow-xl disabled:bg-green-400 flex items-center justify-center gap-2 transition-all cursor-pointer text-sm"
-          >
-            {loading ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <>
-                <span>Send Reset Code</span>
-                <Send className="h-4 w-4" />
-              </>
-            )}
-          </button>
-        </form>
+          {/* Input Form */}
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            <Input 
+              icon={Mail} 
+              label="Work email" 
+              type="email" 
+              placeholder="you@company.com" 
+              error={errors.email?.message} 
+              {...register('email')} 
+            />
 
-        {/* Additional help note */}
-        <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-[11px] text-slate-500 leading-relaxed text-center font-medium">
-          If you are unable to recover using your email, please reach out to your organization administrator or IT desk.
-        </div>
+            <Button
+              type="submit"
+              loading={isSubmitting}
+              className="w-full mt-2"
+              size="lg"
+              icon={Send}
+            >
+              Send Reset Code
+            </Button>
+          </form>
 
-      </div>
+          {/* Help note */}
+          <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-2xl p-4 text-[11px] text-[#64748B] leading-relaxed text-center font-medium">
+            If you are unable to recover using your email, please reach out to your organization administrator or IT helpdesk.
+          </div>
+
+        </Card>
+      </motion.div>
     </div>
   );
 }

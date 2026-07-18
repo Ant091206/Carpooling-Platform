@@ -65,8 +65,8 @@ class AdminController {
       const userId = parseInt(req.params.id, 10);
       const { status } = req.body; // e.g. ACTIVE, SUSPENDED, INACTIVE
 
-      if (!status) {
-        throw new ApiError(400, 'User status parameter is required.');
+      if (!['ACTIVE', 'INACTIVE'].includes(status)) {
+        throw new ApiError(400, 'Invalid status. Allowed values: ACTIVE, INACTIVE');
       }
 
       const updatedUser = await prisma.user.update({

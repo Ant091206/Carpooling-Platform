@@ -16,8 +16,6 @@ enum OrgStatus {
 enum UserStatus {
   ACTIVE
   INACTIVE
-  PENDING
-  SUSPENDED
 }
 
 enum Role {
@@ -74,22 +72,33 @@ model Organization {
 
 model User {
   id             Int            @id @default(autoincrement()) @db.UnsignedInt
-  organizationId Int            @map("organization_id") @db.UnsignedInt
+  uuid           String         @unique @default(uuid()) @db.VarChar(36)
   employeeId     String         @map("employee_id") @db.VarChar(50)
+  firstName      String         @map("first_name") @db.VarChar(50)
+  lastName       String         @map("last_name") @db.VarChar(50)
   name           String         @db.VarChar(100)
   email          String         @unique @db.VarChar(100)
-  password       String         @db.VarChar(255)
   phone          String?        @db.VarChar(20)
+  passwordHash   String         @map("password_hash") @db.VarChar(255)
+  organization   String         @db.VarChar(150)
   department     String?        @db.VarChar(100)
-  designation    String?        @db.VarChar(100)
-  avatar         String?        @db.VarChar(255)
   role           Role           @default(EMPLOYEE)
+  isVerified     Boolean        @default(false) @map("is_verified")
   status         UserStatus     @default(ACTIVE)
-  lastLogin      DateTime?      @map("last_login") @db.Timestamp(0)
   createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt      DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
 
-  organization      Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  // Forgot password OTP fields
+  otpCode        String?        @map("otp_code") @db.VarChar(10)
+  otpExpiresAt   DateTime?      @map("otp_expires_at") @db.Timestamp(0)
+
+  // Backward compatibility fields
+  lastLogin      DateTime?      @map("last_login") @db.Timestamp(0)
+  avatar         String?        @db.VarChar(255)
+  designation    String?        @db.VarChar(100)
+  organizationId Int?           @map("organization_id") @db.UnsignedInt
+
+  organizationObj   Organization?  @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   refreshTokens     RefreshToken[]
   savedPlaces       SavedPlace[]
   vehicles          Vehicle[]
@@ -112,7 +121,7 @@ model User {
   reports                  Report[]               @relation("UserReports")
   matchPreference          MatchPreference?       @relation("UserMatchPreferences")
 
-  @@unique([organizationId, employeeId], name: "idx_user_org_emp")
+  @@unique([organization, employeeId], name: "idx_user_org_emp")
   @@index([role], map: "idx_user_role")
   @@index([status], map: "idx_user_status")
   @@map("users")
