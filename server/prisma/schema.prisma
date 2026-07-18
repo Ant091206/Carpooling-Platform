@@ -25,6 +25,34 @@ enum Role {
   EMPLOYEE
 }
 
+enum VehicleType {
+  CAR
+  SUV
+  VAN
+  BIKE
+}
+
+enum FuelType {
+  PETROL
+  DIESEL
+  CNG
+  EV
+  HYBRID
+}
+
+enum VehicleStatus {
+  ACTIVE
+  INACTIVE
+  UNDER_MAINTENANCE
+  BLOCKED
+}
+
+enum DocVerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model Organization {
   id          Int        @id @default(autoincrement()) @db.UnsignedInt
   name        String     @db.VarChar(150)
@@ -79,12 +107,10 @@ model User {
   notifications            Notification[]
   notificationPreference   NotificationPreference?
   emailQueue               EmailQueue[]
-<<<<<<< HEAD
   systemLogs               SystemLog[]
-=======
   adminActivities          AdminActivity[]        @relation("AdminActivities")
   reports                  Report[]               @relation("UserReports")
->>>>>>> 7a57a61ce29369380aa6e4b39459103a5ff866b9
+  matchPreference          MatchPreference?       @relation("UserMatchPreferences")
 
   @@unique([organizationId, employeeId], name: "idx_user_org_emp")
   @@index([role], map: "idx_user_role")
@@ -123,21 +149,51 @@ model RefreshToken {
 }
 
 model Vehicle {
-  id          Int      @id @default(autoincrement()) @db.UnsignedInt
-  userId      Int      @map("user_id") @db.UnsignedInt
-  model       String   @db.VarChar(100)
-  plateNumber String   @unique @map("plate_number") @db.VarChar(50)
-  color       String   @db.VarChar(50)
-  capacity    Int      @db.Int
-  type        String?  @db.VarChar(50)
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+  id                         Int           @id @default(autoincrement()) @db.UnsignedInt
+  ownerId                    Int           @map("owner_id") @db.UnsignedInt
+  registrationNumber         String        @unique @map("registration_number") @db.VarChar(50)
+  manufacturer               String?       @db.VarChar(100)
+  model                      String        @db.VarChar(100)
+  variant                    String?       @db.VarChar(100)
+  vehicleType                VehicleType   @default(CAR) @map("vehicle_type")
+  fuelType                   FuelType      @default(PETROL) @map("fuel_type")
+  color                      String        @db.VarChar(50)
+  year                       Int?          @db.Int
+  seatCapacity               Int           @default(4) @map("seat_capacity") @db.Int
+  insuranceNumber            String?       @map("insurance_number") @db.VarChar(100)
+  insuranceExpiry            DateTime?     @map("insurance_expiry") @db.DateTime(0)
+  pollutionCertificateExpiry DateTime?     @map("pollution_certificate_expiry") @db.DateTime(0)
+  registrationExpiry         DateTime?     @map("registration_expiry") @db.DateTime(0)
+  isVerified                 Boolean       @default(false) @map("is_verified")
+  status                     VehicleStatus @default(ACTIVE)
+  createdAt                  DateTime      @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt                  DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
 
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  rides       Ride[]
+  owner                      User              @relation(fields: [ownerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  documents                  VehicleDocument[]
+  rides                      Ride[]
 
-  @@index([userId], map: "idx_vehicles_user_id")
+  @@index([ownerId], map: "idx_vehicles_owner_id")
+  @@index([registrationNumber], map: "idx_vehicles_reg_number")
+  @@index([status], map: "idx_vehicles_status")
+  @@index([isVerified], map: "idx_vehicles_verified")
   @@map("vehicles")
+}
+
+model VehicleDocument {
+  id                 Int                   @id @default(autoincrement()) @db.UnsignedInt
+  vehicleId          Int                   @map("vehicle_id") @db.UnsignedInt
+  documentType       String                @map("document_type") @db.VarChar(100)
+  documentUrl        String                @map("document_url") @db.VarChar(255)
+  expiryDate         DateTime?             @map("expiry_date") @db.DateTime(0)
+  verificationStatus DocVerificationStatus @default(PENDING) @map("verification_status")
+  uploadedAt         DateTime              @default(now()) @map("uploaded_at") @db.Timestamp(0)
+
+  vehicle            Vehicle               @relation(fields: [vehicleId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([vehicleId], map: "idx_veh_doc_vehicle_id")
+  @@index([verificationStatus], map: "idx_veh_doc_status")
+  @@map("vehicle_documents")
 }
 
 model Ride {
@@ -165,6 +221,8 @@ model Ride {
   bookings            Booking[]
   histories           RideHistory[]
   reviews             RideReview[]
+  sourceMatches       RideMatch[]  @relation("SourceRideMatches")
+  targetMatches       RideMatch[]  @relation("TargetRideMatches")
 
   @@index([driverId], map: "idx_rides_driver_id")
   @@index([departureTime], map: "idx_rides_departure_time")
@@ -444,10 +502,8 @@ model EmailQueue {
   @@index([userId], map: "idx_email_queue_user_id")
   @@index([status], map: "idx_email_queue_status")
   @@index([scheduledAt], map: "idx_email_queue_scheduled")
-  @@map("email_queue")
 }
 
-<<<<<<< HEAD
 // ─── Module 15: Production Optimization, DevOps Readiness & System Logging ────
 
 enum LogLevel {
@@ -497,7 +553,6 @@ model SystemSetting {
   @@map("system_settings")
 }
 
-=======
 // ─── Module 13: Enterprise Admin Dashboard ───────────────────────────────────────
 
 model AdminActivity {
@@ -535,11 +590,11 @@ model Announcement {
 model Report {
   id          Int      @id @default(autoincrement()) @db.UnsignedInt
   title       String   @db.VarChar(255)
-  type        String   @db.VarChar(100) // e.g. RIDE, PAYMENT, USER, DRIVER, PASSENGER, REVENUE, BOOKING, RATING
+  type        String   @db.VarChar(100)
   generatedBy Int      @map("generated_by") @db.UnsignedInt
-  fileType    String   @map("file_type") @db.VarChar(50) // CSV, XLSX, PDF
-  status      String   @default("PENDING") @db.VarChar(50) // PENDING, PROCESSING, COMPLETED, FAILED
-  filters     String?  @db.Text // JSON string of filters
+  fileType    String   @map("file_type") @db.VarChar(50)
+  status      String   @default("PENDING") @db.VarChar(50)
+  filters     String?  @db.Text
   fileUrl     String?  @map("file_url") @db.VarChar(255)
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
@@ -570,5 +625,51 @@ model AnalyticsSnapshot {
   @@map("analytics_snapshots")
 }
 
+// ─── Module 16: AI Smart Ride Matching & Route Optimization Engine ──────────────
 
->>>>>>> 7a57a61ce29369380aa6e4b39459103a5ff866b9
+enum MatchStatus {
+  SUGGESTED
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+model RideMatch {
+  id                 Int         @id @default(autoincrement()) @db.UnsignedInt
+  rideId             Int         @map("ride_id") @db.UnsignedInt
+  matchedRideId      Int         @map("matched_ride_id") @db.UnsignedInt
+  matchScore         Decimal     @map("match_score") @db.Decimal(5, 2)
+  distanceDifference Decimal     @default(0.00) @map("distance_difference") @db.Decimal(10, 2)
+  timeDifference     Int         @default(0) @map("time_difference") @db.Int
+  seatCompatibility  Boolean     @default(true) @map("seat_compatibility")
+  status             MatchStatus @default(SUGGESTED)
+  createdAt          DateTime    @default(now()) @map("created_at") @db.Timestamp(0)
+
+  ride        Ride @relation("SourceRideMatches", fields: [rideId], references: [id], onDelete: Cascade)
+  matchedRide Ride @relation("TargetRideMatches", fields: [matchedRideId], references: [id], onDelete: Cascade)
+
+  @@index([rideId], map: "idx_ridematch_ride_id")
+  @@index([matchedRideId], map: "idx_ridematch_matched_ride_id")
+  @@index([matchScore], map: "idx_ridematch_match_score")
+  @@map("ride_matches")
+}
+
+model MatchPreference {
+  id                     Int      @id @default(autoincrement()) @db.UnsignedInt
+  userId                 Int      @unique @map("user_id") @db.UnsignedInt
+  maxDetourDistance      Decimal  @default(5.00) @map("max_detour_distance") @db.Decimal(10, 2)
+  maxWaitingTime         Int      @default(30) @map("max_waiting_time") @db.Int
+  preferredGender        String?  @map("preferred_gender") @db.VarChar(20)
+  allowMixedGender       Boolean  @default(true) @map("allow_mixed_gender")
+  preferredDepartments   String?  @map("preferred_departments") @db.VarChar(255)
+  preferredOrganizations String?  @map("preferred_organizations") @db.VarChar(255)
+  allowRecurringMatches  Boolean  @default(true) @map("allow_recurring_matches")
+  createdAt              DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt              DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  user User @relation("UserMatchPreferences", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "idx_match_pref_user_id")
+  @@map("match_preferences")
+}
+

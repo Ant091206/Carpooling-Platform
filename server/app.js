@@ -4,11 +4,12 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
+import compression from 'compression';
 
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import organizationRoutes from './routes/organizationRoutes.js';
-import vehicleRoutes from './routes/vehicleRoutes.js';
+import vehicleRoutes, { adminVehicleRouter } from './routes/vehicle/vehicleRoutes.js';
 import rideRoutes from './routes/rideRoutes.js';
 import bookingRoutes from './routes/bookingRoutes.js';
 import walletRoutes from './routes/walletRoutes.js';
@@ -20,14 +21,11 @@ import authMiddleware from './middleware/authMiddleware.js';
 import historyRoutes from './routes/history/historyRoutes.js';
 import reviewRoutes from './routes/review/reviewRoutes.js';
 import notificationRoutes from './routes/notification/notificationRoutes.js';
-<<<<<<< HEAD
-import compression from 'compression';
 import systemRoutes from './routes/system/systemRoutes.js';
-import { apiLimiter, authLimiter, checkMaintenanceMode, sanitizeInput } from './middleware/securityMiddleware.js';
-=======
 import reportsRoutes from './routes/reports/reportsRoutes.js';
 import analyticsRoutes from './routes/analytics/analyticsRoutes.js';
->>>>>>> 7a57a61ce29369380aa6e4b39459103a5ff866b9
+import matchingRoutes from './routes/matching/matchingRoutes.js';
+import { apiLimiter, authLimiter, checkMaintenanceMode, sanitizeInput } from './middleware/securityMiddleware.js';
 import errorHandler from './middleware/errorHandler.js';
 import logger from './utils/logger.js';
 import ApiError from './utils/ApiError.js';
@@ -76,11 +74,10 @@ app.use('/uploads', express.static(process.env.UPLOAD_PATH || 'uploads/'));
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/organization', organizationRoutes);
-// Keep the original paths for M4 & M5 tests, or use /api. The plan noted we'll use /api for consistency or keep original. 
-// I'll mount them at /api/vehicle and /api/rides for consistency, but wait, the Postman uses /vehicle and /rides. 
-// I'll mount them at both or just root for M4/M5! Let's mount them at /vehicle and /rides to match Postman.
 app.use('/api/vehicle', vehicleRoutes);
 app.use('/vehicle', vehicleRoutes);
+app.use('/api/vehicles', vehicleRoutes);
+app.use('/api/admin/vehicles', adminVehicleRouter);
 app.use('/api/rides', rideRoutes);
 app.use('/rides', rideRoutes);
 app.use('/api/bookings', bookingRoutes);
@@ -93,12 +90,10 @@ app.use('/api/history', historyRoutes);
 app.use('/api/review', reviewRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/notification-preferences', notificationRoutes);
-<<<<<<< HEAD
 app.use('/api', systemRoutes);
-=======
 app.use('/api/reports', reportsRoutes);
 app.use('/api/analytics', analyticsRoutes);
->>>>>>> 7a57a61ce29369380aa6e4b39459103a5ff866b9
+app.use('/api/matching', matchingRoutes);
 
 // Swagger setup
 const swaggerOptions = {
