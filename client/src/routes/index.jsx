@@ -24,6 +24,9 @@ import Settings from '../pages/Settings.jsx';
 import NotFound from '../pages/NotFound.jsx';
 import Notifications from '../pages/Notifications.jsx';
 import NotificationSettings from '../pages/NotificationSettings.jsx';
+import CreateReport from '../pages/CreateReport.jsx';
+import ReportHistory from '../pages/ReportHistory.jsx';
+import Analytics from '../pages/Analytics.jsx';
 
 // Module 10 — Lazy-loaded Wallet & Payment pages
 const WalletDashboard = lazy(() => import('../pages/Wallet/WalletDashboard.jsx'));
@@ -94,6 +97,9 @@ export const appRoutes = [
       { path: 'ride-history/:rideId', element: protect(RideDetailsHistory) },
       { path: 'profile-reviews/:userId', element: protect(ReviewsProfile) },
       { path: 'reports',         element: protect(Reports) },
+      { path: 'reports/create',  element: protect(CreateReport) },
+      { path: 'reports/history', element: protect(ReportHistory) },
+      { path: 'analytics',       element: protect(Analytics) },
 
       // Supporting pages
       { path: 'my-vehicle',      element: protect(MyVehicle) },

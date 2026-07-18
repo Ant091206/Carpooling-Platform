@@ -20,6 +20,8 @@ import authMiddleware from './middleware/authMiddleware.js';
 import historyRoutes from './routes/history/historyRoutes.js';
 import reviewRoutes from './routes/review/reviewRoutes.js';
 import notificationRoutes from './routes/notification/notificationRoutes.js';
+import reportsRoutes from './routes/reports/reportsRoutes.js';
+import analyticsRoutes from './routes/analytics/analyticsRoutes.js';
 import errorHandler from './middleware/errorHandler.js';
 import logger from './utils/logger.js';
 import ApiError from './utils/ApiError.js';
@@ -78,6 +80,8 @@ app.use('/api/history', historyRoutes);
 app.use('/api/review', reviewRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/notification-preferences', notificationRoutes);
+app.use('/api/reports', reportsRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // Swagger setup
 const swaggerOptions = {
