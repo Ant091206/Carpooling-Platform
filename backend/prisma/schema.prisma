@@ -65,6 +65,7 @@ model User {
   refreshTokens  RefreshToken[]
   savedPlaces    SavedPlace[]
   vehicles       Vehicle[]
+  rides          Ride[]
 
   @@unique([organizationId, employeeId], name: "idx_user_org_emp")
   @@index([role], map: "idx_user_role")
@@ -114,7 +115,45 @@ model Vehicle {
   updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
 
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  rides       Ride[]
 
   @@index([userId], map: "idx_vehicles_user_id")
   @@map("vehicles")
+}
+
+model Ride {
+  id                  Int          @id @default(autoincrement()) @db.UnsignedInt
+  driverId            Int          @map("driver_id") @db.UnsignedInt
+  vehicleId           Int          @map("vehicle_id") @db.UnsignedInt
+  pickupName          String       @map("pickup_name") @db.VarChar(255)
+  pickupLocation      Unsupported("point") @map("pickup_location")
+  destinationName     String       @map("destination_name") @db.VarChar(255)
+  destinationLocation Unsupported("point") @map("destination_location")
+  departureTime       DateTime     @map("departure_time") @db.DateTime(0)
+  availableSeats      Int          @map("available_seats") @db.Int
+  farePerSeat         Decimal      @map("fare_per_seat") @db.Decimal(10, 2)
+  distanceKm          Decimal?     @map("distance_km") @db.Decimal(10, 2)
+  estimatedDuration   Int?         @map("estimated_duration") @db.Int
+  routeGeometry       String?      @map("route_geometry") @db.LongText
+  rideStatus          RideStatus   @default(Scheduled) @map("ride_status")
+  isRecurring         Boolean      @default(false) @map("is_recurring")
+  notes               String?      @db.Text
+  createdAt           DateTime     @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt           DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  driver              User         @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  vehicle             Vehicle      @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+
+  @@index([driverId], map: "idx_rides_driver_id")
+  @@index([departureTime], map: "idx_rides_departure_time")
+  @@index([rideStatus], map: "idx_rides_status")
+  @@map("rides")
+}
+
+enum RideStatus {
+  Scheduled
+  Started
+  InProgress @map("In Progress")
+  Completed
+  Cancelled
 }
