@@ -140,3 +140,14 @@ export const adminAPI = {
   getRides:         ()           => api.get('/admin/rides'),
   cancelRide:       (id)         => api.delete(`/admin/rides/${id}`),
 };
+
+export const historyAPI = {
+  getMyRides: ()       => api.get('/history/my-rides'),
+  getById:    (rideId) => api.get(`/history/${rideId}`),
+};
+
+export const reviewsAPI = {
+  create:     (data)   => api.post('/review', data),
+  getByUser:  (userId) => api.get(`/review/user/${userId}`),
+  getByRide:  (rideId) => api.get(`/review/ride/${rideId}`),
+};

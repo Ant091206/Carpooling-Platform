@@ -72,6 +72,13 @@ model User {
   walletTransactions WalletTransaction[]
   paymentsPaid      Payment[]      @relation("PaymentPayer")
   paymentsReceived  Payment[]      @relation("PaymentReceiver")
+  reviewsGiven       RideReview[]   @relation("ReviewsGiven")
+  reviewsReceived    RideReview[]   @relation("ReviewsReceived")
+  driverHistories    RideHistory[]  @relation("DriverHistory")
+  passengerHistories RideHistory[]  @relation("PassengerHistory")
+  notifications            Notification[]
+  notificationPreference   NotificationPreference?
+  emailQueue               EmailQueue[]
 
   @@unique([organizationId, employeeId], name: "idx_user_org_emp")
   @@index([role], map: "idx_user_role")
@@ -150,6 +157,8 @@ model Ride {
   driver              User         @relation(fields: [driverId], references: [id], onDelete: Cascade)
   vehicle             Vehicle      @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
   bookings            Booking[]
+  histories           RideHistory[]
+  reviews             RideReview[]
 
   @@index([driverId], map: "idx_rides_driver_id")
   @@index([departureTime], map: "idx_rides_departure_time")
@@ -290,4 +299,144 @@ model Payment {
   @@index([status], map: "idx_payment_status")
   @@index([paymentMethod], map: "idx_payment_method")
   @@map("payments")
+}
+
+// ─── Module 11: Ride History & Reviews ──────────────────────────────────────────
+
+model RideHistory {
+  id            Int        @id @default(autoincrement()) @db.UnsignedInt
+  rideId        Int        @map("ride_id") @db.UnsignedInt
+  driverId      Int        @map("driver_id") @db.UnsignedInt
+  passengerId   Int        @map("passenger_id") @db.UnsignedInt
+  farePaid      Decimal    @map("fare_paid") @db.Decimal(10, 2)
+  distance      Decimal    @map("distance") @db.Decimal(10, 2)
+  duration      Int        @map("duration") @db.Int
+  pickup        String     @map("pickup") @db.VarChar(255)
+  dropoff       String     @map("dropoff") @db.VarChar(255)
+  rideDate      DateTime   @map("ride_date") @db.Timestamp(0)
+  status        RideStatus @map("status")
+  paymentStatus String     @map("payment_status") @db.VarChar(50)
+  createdAt     DateTime   @default(now()) @map("created_at") @db.Timestamp(0)
+
+  ride          Ride       @relation(fields: [rideId], references: [id], onDelete: Cascade)
+  driver        User       @relation("DriverHistory", fields: [driverId], references: [id], onDelete: Cascade)
+  passenger     User       @relation("PassengerHistory", fields: [passengerId], references: [id], onDelete: Cascade)
+
+  @@index([rideId], map: "idx_history_ride_id")
+  @@index([driverId], map: "idx_history_driver_id")
+  @@index([passengerId], map: "idx_history_passenger_id")
+  @@map("ride_histories")
+}
+
+model RideReview {
+  id         Int      @id @default(autoincrement()) @db.UnsignedInt
+  rideId     Int      @map("ride_id") @db.UnsignedInt
+  reviewerId Int      @map("reviewer_id") @db.UnsignedInt
+  revieweeId Int      @map("reviewee_id") @db.UnsignedInt
+  rating     Int      @map("rating") @db.Int
+  review     String   @map("review") @db.Text
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+
+  ride       Ride     @relation(fields: [rideId], references: [id], onDelete: Cascade)
+  reviewer   User     @relation("ReviewsGiven", fields: [reviewerId], references: [id], onDelete: Cascade)
+  reviewee   User     @relation("ReviewsReceived", fields: [revieweeId], references: [id], onDelete: Cascade)
+
+  @@unique([reviewerId, revieweeId, rideId], name: "idx_review_unique_pair")
+  @@index([rideId], map: "idx_review_ride_id")
+  @@index([reviewerId], map: "idx_review_reviewer_id")
+  @@index([revieweeId], map: "idx_review_reviewee_id")
+  @@map("ride_reviews")
+}
+
+// ─── Module 12: Notifications & Communication ──────────────────────────────────
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+}
+
+enum NotificationCategory {
+  BOOKING
+  PAYMENT
+  RIDE
+  SYSTEM
+  PROFILE
+  REMINDER
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum EmailStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+model Notification {
+  id        Int                  @id @default(autoincrement()) @db.UnsignedInt
+  userId    Int                  @map("user_id") @db.UnsignedInt
+  title     String               @db.VarChar(255)
+  message   String               @db.Text
+  type      NotificationType     @default(INFO)
+  category  NotificationCategory @default(SYSTEM)
+  priority  Priority             @default(MEDIUM)
+  isRead    Boolean              @default(false) @map("is_read")
+  actionUrl String?              @map("action_url") @db.VarChar(500)
+  metadata  Json?                @db.Json
+  createdAt DateTime             @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId], map: "idx_notification_user_id")
+  @@index([isRead], map: "idx_notification_is_read")
+  @@index([category], map: "idx_notification_category")
+  @@index([createdAt], map: "idx_notification_created_at")
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  id                       Int      @id @default(autoincrement()) @db.UnsignedInt
+  userId                   Int      @unique @map("user_id") @db.UnsignedInt
+  emailEnabled             Boolean  @default(true) @map("email_enabled")
+  pushEnabled              Boolean  @default(true) @map("push_enabled")
+  inAppEnabled             Boolean  @default(true) @map("in_app_enabled")
+  bookingNotifications     Boolean  @default(true) @map("booking_notifications")
+  paymentNotifications     Boolean  @default(true) @map("payment_notifications")
+  rideReminderNotifications Boolean @default(true) @map("ride_reminder_notifications")
+  systemNotifications      Boolean  @default(true) @map("system_notifications")
+  marketingNotifications   Boolean  @default(false) @map("marketing_notifications")
+  createdAt                DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt                DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  user                     User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("notification_preferences")
+}
+
+model EmailQueue {
+  id          Int         @id @default(autoincrement()) @db.UnsignedInt
+  userId      Int         @map("user_id") @db.UnsignedInt
+  recipient   String      @db.VarChar(255)
+  subject     String      @db.VarChar(500)
+  body        String      @db.LongText
+  status      EmailStatus @default(PENDING)
+  retryCount  Int         @default(0) @map("retry_count") @db.Int
+  scheduledAt DateTime?   @map("scheduled_at") @db.Timestamp(0)
+  sentAt      DateTime?   @map("sent_at") @db.Timestamp(0)
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamp(0)
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId], map: "idx_email_queue_user_id")
+  @@index([status], map: "idx_email_queue_status")
+  @@index([scheduledAt], map: "idx_email_queue_scheduled")
+  @@map("email_queue")
 }

@@ -17,6 +17,8 @@ import Wallet from '../pages/Wallet.jsx';
 import TransactionHistory from '../pages/TransactionHistory.jsx';
 import PaymentDetailsPage from '../pages/PaymentDetails.jsx';
 import RideHistory from '../pages/RideHistory.jsx';
+import RideDetailsHistory from '../pages/RideDetailsHistory.jsx';
+import ReviewsProfile from '../pages/ReviewsProfile.jsx';
 import Reports from '../pages/Reports.jsx';
 import Settings from '../pages/Settings.jsx';
 import NotFound from '../pages/NotFound.jsx';
@@ -87,6 +89,8 @@ export const appRoutes = [
       { path: 'payment/history', element: <ProtectedRoute><LazyPage Component={PaymentHistory} /></ProtectedRoute> },
       { path: 'payment/:id',     element: <ProtectedRoute><LazyPage Component={PaymentDetails} /></ProtectedRoute> },
       { path: 'ride-history',    element: protect(RideHistory) },
+      { path: 'ride-history/:rideId', element: protect(RideDetailsHistory) },
+      { path: 'profile-reviews/:userId', element: protect(ReviewsProfile) },
       { path: 'reports',         element: protect(Reports) },
 
       // Supporting pages

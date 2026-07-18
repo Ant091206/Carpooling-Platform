@@ -2,6 +2,8 @@ import http from 'http';
 import { Server } from 'socket.io';
 import app from './app.js';
 import logger from './utils/logger.js';
+import startReminderJob from './jobs/reminderJob.js';
+import startEmailQueueJob from './jobs/emailQueueJob.js';
 
 import { setIo, registerUserSocket, removeUserSocketBySocketId } from './utils/socketIo.js';
 
@@ -46,6 +48,15 @@ io.on('connection', (socket) => {
     logger.info(`Message broadcast to ride_chat_${rideId}`);
   });
 
+  // Notification-specific socket events
+  socket.on('notification:read', (data) => {
+    logger.info(`User marked notification ${data?.id} as read via socket`);
+  });
+
+  socket.on('notification:delete', (data) => {
+    logger.info(`User deleted notification ${data?.id} via socket`);
+  });
+
   socket.on('disconnect', () => {
     logger.info(`Socket disconnected: ${socket.id}`);
     removeUserSocketBySocketId(socket.id);
@@ -58,6 +69,10 @@ const server = httpServer.listen(PORT, () => {
   } else {
       console.log(`Server successfully started on port ${PORT} in [${process.env.NODE_ENV || 'development'}] environment.`);
   }
+
+  // Start cron jobs
+  startReminderJob();
+  startEmailQueueJob();
 });
 
 // Graceful shutdown handling

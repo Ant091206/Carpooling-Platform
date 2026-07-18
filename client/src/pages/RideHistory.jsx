@@ -1,97 +1,121 @@
 import { useState, useEffect } from 'react';
 import PageShell from '../components/shared/PageShell.jsx';
 import Card from '../components/ui/Card.jsx';
-import Badge from '../components/ui/Badge.jsx';
-import bookingService from '../services/booking.service.js';
-import rideService from '../services/ride.service.js';
+import HistoryCard from '../components/HistoryCard.jsx';
+import EmptyHistory from '../components/EmptyHistory.jsx';
+import ReviewModal from '../components/ReviewModal.jsx';
+import historyService from '../services/history.service.js';
+import toast from 'react-hot-toast';
 
 export default function RideHistory() {
-  const [historyItems, setHistoryItems] = useState([]);
+  const [activeTab, setActiveTab] = useState('upcoming'); // upcoming, completed, cancelled
+  const [historyData, setHistoryData] = useState({ upcoming: [], completed: [], cancelled: [] });
   const [loading, setLoading] = useState(true);
 
+  // Review modal state
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [selectedRideId, setSelectedRideId] = useState(null);
+  const [selectedRevieweeId, setSelectedRevieweeId] = useState(null);
+  const [selectedRevieweeName, setSelectedRevieweeName] = useState('');
+  const [selectedRevieweeRole, setSelectedRevieweeRole] = useState('');
+
+  const loadHistory = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
+    try {
+      const data = await historyService.getMyRides();
+      setHistoryData(data || { upcoming: [], completed: [], cancelled: [] });
+    } catch (error) {
+      toast.error('Failed to load ride history.');
+    } finally {
+      if (showLoading) setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadHistory = async () => {
-      try {
-        setLoading(true);
-        const list = [];
-
-        // 1. Fetch passenger bookings
-        try {
-          const bookings = await bookingService.listBookings();
-          bookings.filter(b => b.status === 'COMPLETED' || b.ride.rideStatus === 'Completed').forEach(b => {
-            list.push({
-              id: `booking_${b.id}`,
-              route: `${b.ride.pickupName} to ${b.ride.destinationName}`,
-              date: new Date(b.ride.departureTime).toLocaleDateString(),
-              role: 'Passenger',
-              fare: parseFloat(b.ride.farePerSeat) * b.requestedSeats,
-              status: 'Settled',
-              rawTime: b.ride.departureTime
-            });
-          });
-        } catch (e) {
-          console.error("History bookings error:", e.message);
-        }
-
-        // 2. Fetch driver rides
-        try {
-          const rides = await rideService.getMyRides();
-          rides.filter(r => r.ride_status === 'Completed').forEach(r => {
-            list.push({
-              id: `ride_${r.id}`,
-              route: `${r.pickup_name} to ${r.destination_name}`,
-              date: new Date(r.departure_time).toLocaleDateString(),
-              role: 'Driver',
-              fare: r.fare_per_seat,
-              status: 'Paid Out',
-              rawTime: r.departure_time
-            });
-          });
-        } catch (e) {
-          console.error("History rides error:", e.message);
-        }
-
-        list.sort((a, b) => new Date(b.rawTime) - new Date(a.rawTime));
-        setHistoryItems(list);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadHistory();
   }, []);
 
+  const handleReviewClick = (rideId, partnerId, partnerName, partnerRole) => {
+    setSelectedRideId(rideId);
+    setSelectedRevieweeId(partnerId);
+    setSelectedRevieweeName(partnerName);
+    setSelectedRevieweeRole(partnerRole);
+    setReviewModalOpen(true);
+  };
+
+  const handleReviewSuccess = () => {
+    // Re-fetch quietly to update review status
+    loadHistory(false);
+  };
+
+  const currentRides = historyData[activeTab] || [];
+
   return (
-    <PageShell 
-      eyebrow="Archive" 
-      title="Ride History" 
-      description="Completed rides with route, date, and settlement status."
+    <PageShell
+      eyebrow="My Trips"
+      title="Commute History"
+      description="Track your active, past completed, or cancelled carpool sessions."
     >
-      {loading ? (
-        <div className="space-y-4 animate-pulse">
-          <div className="h-16 bg-slate-100 rounded-2xl" />
-          <div className="h-16 bg-slate-100 rounded-2xl" />
-        </div>
-      ) : historyItems.length > 0 ? (
-        <div className="grid gap-4">
-          {historyItems.map((item) => (
-            <Card key={item.id} className="grid gap-3 md:grid-cols-[1fr_auto_auto] p-5 bg-white border border-slate-100">
-              <div>
-                <h3 className="font-heading text-xl font-extrabold text-slate-950">{item.route}</h3>
-                <p className="text-slate-600 text-sm mt-1">
-                  <span className="font-bold text-emerald-800 tracking-wider uppercase text-xs">{item.role}</span> &bull; {item.date}
-                </p>
-              </div>
-              <Badge variant="success">{item.status}</Badge>
-              <p className="font-heading text-2xl font-extrabold text-emerald-700">INR {item.fare}</p>
-            </Card>
+      <div className="space-y-6">
+        {/* Tab selection buttons */}
+        <div className="flex border-b border-slate-100 gap-6">
+          {['upcoming', 'completed', 'cancelled'].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`pb-3 font-heading font-extrabold text-sm capitalize transition-all border-b-2 relative -bottom-[2px] ${
+                activeTab === tab
+                  ? 'border-emerald-600 text-emerald-700'
+                  : 'border-transparent text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              {tab} ({historyData[tab]?.length || 0})
+            </button>
           ))}
         </div>
-      ) : (
-        <div className="rounded-[2.5rem] border-2 border-dashed border-slate-200 bg-slate-50/50 p-12 text-center text-slate-400">
-          No past completed commutes in your archive records.
-        </div>
-      )}
+
+        {/* List content */}
+        {loading ? (
+          <div className="space-y-6">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="animate-pulse bg-white border border-slate-100 rounded-[2.5rem] p-6 space-y-4">
+                <div className="flex justify-between items-center">
+                  <div className="h-4 w-32 bg-slate-100 rounded-full" />
+                  <div className="h-6 w-16 bg-slate-100 rounded-full" />
+                </div>
+                <div className="h-10 w-2/3 bg-slate-100 rounded-2xl" />
+                <div className="flex justify-between items-center pt-2">
+                  <div className="h-8 w-20 bg-slate-100 rounded-full" />
+                  <div className="h-8 w-24 bg-slate-100 rounded-full" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : currentRides.length > 0 ? (
+          <div className="grid gap-6">
+            {currentRides.map((ride) => (
+              <HistoryCard
+                key={ride.id}
+                ride={ride}
+                onReviewClick={handleReviewClick}
+              />
+            ))}
+          </div>
+        ) : (
+          <EmptyHistory tabName={activeTab} />
+        )}
+      </div>
+
+      {/* Shared feedback submit modal */}
+      <ReviewModal
+        isOpen={reviewModalOpen}
+        onClose={() => setReviewModalOpen(false)}
+        rideId={selectedRideId}
+        revieweeId={selectedRevieweeId}
+        revieweeName={selectedRevieweeName}
+        revieweeRole={selectedRevieweeRole}
+        onSuccess={handleReviewSuccess}
+      />
     </PageShell>
   );
 }
