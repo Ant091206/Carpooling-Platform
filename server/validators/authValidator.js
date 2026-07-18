@@ -2,12 +2,12 @@ import { body } from 'express-validator';
 
 export const registerValidator = [
   body('organization_id')
-    .notEmpty().withMessage('organization_id is required')
+    .optional()
     .isInt({ min: 1 }).withMessage('organization_id must be a valid integer ID'),
   
   body('employee_id')
+    .optional()
     .trim()
-    .notEmpty().withMessage('employee_id is required')
     .isLength({ max: 50 }).withMessage('employee_id must not exceed 50 characters'),
   
   body('name')

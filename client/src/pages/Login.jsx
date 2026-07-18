@@ -1,9 +1,10 @@
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
-import { Lock, Mail } from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import AuthLayout from './AuthLayout.jsx';
 import Button from '../components/ui/Button.jsx';
@@ -11,15 +12,20 @@ import Input from '../components/ui/Input.jsx';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid work email').min(1, 'Email is required'),
-  password: z.string().min(6, 'Password must be at least 6 characters')
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+  rememberMe: z.boolean().optional()
 });
 
 export default function Login() {
   const { login, loading } = useAuth();
   const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false);
   
   const { register, handleSubmit, formState: { errors } } = useForm({
-    resolver: zodResolver(loginSchema)
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      rememberMe: false
+    }
   });
 
   const onSubmit = async (data) => {
@@ -47,15 +53,44 @@ export default function Login() {
           error={errors.email?.message} 
           {...register('email')} 
         />
-        <Input 
-          icon={Lock} 
-          label="Password" 
-          type="password" 
-          placeholder="Enter password" 
-          error={errors.password?.message} 
-          {...register('password')} 
-        />
-        <Button type="submit" loading={loading} className="w-full" size="lg">Sign In</Button>
+        
+        <div className="relative">
+          <Input 
+            icon={Lock}
+            label="Password" 
+            type={showPassword ? "text" : "password"} 
+            placeholder="Enter password" 
+            error={errors.password?.message} 
+            {...register('password')} 
+          />
+          <button 
+            type="button" 
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3.5 top-[38px] text-slate-400 hover:text-slate-600 transition"
+          >
+            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        </div>
+
+        <div className="flex items-center justify-between pt-1">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input 
+              type="checkbox" 
+              className="h-4.5 w-4.5 rounded border-slate-200 text-emerald-600 focus:ring-emerald-500" 
+              {...register('rememberMe')} 
+            />
+            <span className="text-xs text-slate-600 font-bold">Remember Me</span>
+          </label>
+          <button 
+            type="button" 
+            onClick={() => toast.error('Forgot password? Please contact your corporate administrator to reset your credentials.')}
+            className="text-xs font-bold text-emerald-700 hover:underline"
+          >
+            Forgot Password?
+          </button>
+        </div>
+
+        <Button type="submit" loading={loading} className="w-full mt-2" size="lg">Sign In</Button>
       </form>
     </AuthLayout>
   );
