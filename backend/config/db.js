@@ -1,31 +1,19 @@
-import mysql from 'mysql2/promise';
-import dotenv from 'dotenv';
+import { PrismaClient } from '@prisma/client';
 import logger from '../utils/logger.js';
 
-dotenv.config();
-
-const pool = mysql.createPool({
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '3306', 10),
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'enterprise_carpool',
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-  enableKeepAlive: true,
-  keepAliveInitialDelay: 0
+const prisma = new PrismaClient({
+  log: process.env.NODE_ENV === 'development' ? ['query', 'info', 'warn', 'error'] : ['error']
 });
 
-// Immediately verify connection on module parse
+// Immediately verify connection on startup
 (async () => {
   try {
-    const connection = await pool.getConnection();
-    logger.info('MySQL Database Connection Pool initialized successfully.');
-    connection.release();
+    await prisma.$connect();
+    logger.info('Prisma Client connected to MySQL database successfully.');
   } catch (error) {
-    logger.error('Failed to establish database connection pool:', error);
+    logger.error('Failed to connect to MySQL database via Prisma Client:', error);
   }
 })();
 
-export default pool;
+export default prisma;
+export { prisma };

@@ -6,6 +6,9 @@ import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 
 import authRoutes from './routes/authRoutes.js';
+import userRoutes from './routes/userRoutes.js';
+import organizationRoutes from './routes/organizationRoutes.js';
+import vehicleRoutes from './routes/vehicleRoutes.js';
 import errorHandler from './middleware/errorHandler.js';
 import logger from './utils/logger.js';
 import ApiError from './utils/ApiError.js';
@@ -43,6 +46,9 @@ app.use('/uploads', express.static(process.env.UPLOAD_PATH || 'uploads/'));
 
 // Module Routes Mount
 app.use('/api/auth', authRoutes);
+app.use('/api/user', userRoutes);
+app.use('/api/organization', organizationRoutes);
+app.use('/api/vehicle', vehicleRoutes);
 
 // Base Health Check endpoint
 app.get('/health', (req, res) => {

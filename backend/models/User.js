@@ -1,21 +1,30 @@
-import db from '../config/db.js';
+import prisma from '../config/db.js';
 
 class User {
   /**
-   * Find employee profile by record ID (excludes password by default)
+   * Find employee profile by record ID
    * @param {number} id Record ID
    */
   static async findById(id) {
-    const [rows] = await db.query(
-      `SELECT u.id, u.organization_id, u.employee_id, u.name, u.email, u.phone, 
-              u.department, u.designation, u.avatar, u.role, u.status, u.last_login, 
-              u.created_at, u.updated_at, o.name AS organization_name 
-       FROM users u
-       INNER JOIN organizations o ON u.organization_id = o.id
-       WHERE u.id = ? LIMIT 1`,
-      [id]
-    );
-    return rows[0] || null;
+    const user = await prisma.user.findUnique({
+      where: { id },
+      include: {
+        organization: true
+      }
+    });
+
+    if (!user) return null;
+
+    // Map output to ensure 100% database field compatibility with mysql2 outputs
+    return {
+      ...user,
+      organization_id: user.organizationId,
+      employee_id: user.employeeId,
+      last_login: user.lastLogin,
+      created_at: user.createdAt,
+      updated_at: user.updatedAt,
+      organization_name: user.organization.name
+    };
   }
 
   /**
@@ -23,16 +32,24 @@ class User {
    * @param {string} email Email address
    */
   static async findByEmail(email) {
-    const [rows] = await db.query(
-      `SELECT u.id, u.organization_id, u.employee_id, u.name, u.email, u.password, u.phone, 
-              u.department, u.designation, u.avatar, u.role, u.status, u.last_login, 
-              u.created_at, u.updated_at, o.name AS organization_name 
-       FROM users u
-       INNER JOIN organizations o ON u.organization_id = o.id
-       WHERE u.email = ? LIMIT 1`,
-      [email]
-    );
-    return rows[0] || null;
+    const user = await prisma.user.findUnique({
+      where: { email },
+      include: {
+        organization: true
+      }
+    });
+
+    if (!user) return null;
+
+    return {
+      ...user,
+      organization_id: user.organizationId,
+      employee_id: user.employeeId,
+      last_login: user.lastLogin,
+      created_at: user.createdAt,
+      updated_at: user.updatedAt,
+      organization_name: user.organization.name
+    };
   }
 
   /**
@@ -54,13 +71,23 @@ class User {
       status = 'ACTIVE'
     } = userData;
 
-    const [result] = await db.query(
-      `INSERT INTO users (organization_id, employee_id, name, email, password, phone, department, designation, avatar, role, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [organization_id, employee_id, name, email, password, phone, department, designation, avatar, role, status]
-    );
+    const user = await prisma.user.create({
+      data: {
+        organizationId: organization_id,
+        employeeId: employee_id,
+        name,
+        email,
+        password,
+        phone,
+        department,
+        designation,
+        avatar,
+        role,
+        status
+      }
+    });
 
-    return result.insertId;
+    return user.id;
   }
 
   /**
@@ -68,11 +95,46 @@ class User {
    * @param {number} id Record ID
    */
   static async updateLastLogin(id) {
-    const [result] = await db.query(
-      'UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?',
-      [id]
-    );
-    return result.affectedRows > 0;
+    const user = await prisma.user.update({
+      where: { id },
+      data: {
+        lastLogin: new Date()
+      }
+    });
+    return !!user;
+  }
+
+  /**
+   * Update user profile fields
+   * @param {number} id Record ID
+   * @param {object} param1 Fields to update: name, phone, department, designation
+   */
+  static async updateProfile(id, { name, phone, department, designation }) {
+    const user = await prisma.user.update({
+      where: { id },
+      data: {
+        name,
+        phone,
+        department,
+        designation
+      }
+    });
+    return !!user;
+  }
+
+  /**
+   * Update user profile avatar file path
+   * @param {number} id Record ID
+   * @param {string} avatarPath Uploaded file path
+   */
+  static async updateAvatar(id, avatarPath) {
+    const user = await prisma.user.update({
+      where: { id },
+      data: {
+        avatar: avatarPath
+      }
+    });
+    return !!user;
   }
 }
 

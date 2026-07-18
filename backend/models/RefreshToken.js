@@ -1,4 +1,4 @@
-import db from '../config/db.js';
+import prisma from '../config/db.js';
 
 class RefreshToken {
   /**
@@ -8,11 +8,14 @@ class RefreshToken {
    * @param {Date} expiresAt Token expiration date
    */
   static async create(userId, token, expiresAt) {
-    const [result] = await db.query(
-      'INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES (?, ?, ?)',
-      [userId, token, expiresAt]
-    );
-    return result.insertId;
+    const result = await prisma.refreshToken.create({
+      data: {
+        userId,
+        token,
+        expiresAt
+      }
+    });
+    return result.id;
   }
 
   /**
@@ -20,11 +23,18 @@ class RefreshToken {
    * @param {string} token Refresh token key
    */
   static async findByToken(token) {
-    const [rows] = await db.query(
-      'SELECT id, user_id, token, expires_at, created_at FROM refresh_tokens WHERE token = ? LIMIT 1',
-      [token]
-    );
-    return rows[0] || null;
+    const record = await prisma.refreshToken.findUnique({
+      where: { token }
+    });
+
+    if (!record) return null;
+
+    return {
+      ...record,
+      user_id: record.userId,
+      expires_at: record.expiresAt,
+      created_at: record.createdAt
+    };
   }
 
   /**
@@ -32,11 +42,19 @@ class RefreshToken {
    * @param {string} token Token string to remove
    */
   static async deleteByToken(token) {
-    const [result] = await db.query(
-      'DELETE FROM refresh_tokens WHERE token = ?',
-      [token]
-    );
-    return result.affectedRows > 0;
+    try {
+      const record = await prisma.refreshToken.findUnique({
+        where: { token }
+      });
+      if (!record) return false;
+
+      await prisma.refreshToken.delete({
+        where: { token }
+      });
+      return true;
+    } catch (error) {
+      return false;
+    }
   }
 
   /**
@@ -44,11 +62,10 @@ class RefreshToken {
    * @param {number} userId User record identifier
    */
   static async deleteByUserId(userId) {
-    const [result] = await db.query(
-      'DELETE FROM refresh_tokens WHERE user_id = ?',
-      [userId]
-    );
-    return result.affectedRows > 0;
+    const result = await prisma.refreshToken.deleteMany({
+      where: { userId }
+    });
+    return result.count > 0;
   }
 }
 
