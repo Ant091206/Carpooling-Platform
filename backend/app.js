@@ -10,6 +10,7 @@ import userRoutes from './routes/userRoutes.js';
 import organizationRoutes from './routes/organizationRoutes.js';
 import vehicleRoutes from './routes/vehicleRoutes.js';
 import rideRoutes from './routes/rideRoutes.js';
+import bookingRoutes from './routes/bookingRoutes.js';
 import errorHandler from './middleware/errorHandler.js';
 import logger from './utils/logger.js';
 import ApiError from './utils/ApiError.js';
@@ -58,6 +59,7 @@ app.use('/api/vehicle', vehicleRoutes);
 app.use('/vehicle', vehicleRoutes);
 app.use('/api/rides', rideRoutes);
 app.use('/rides', rideRoutes);
+app.use('/api/bookings', bookingRoutes);
 
 // Swagger setup
 const swaggerOptions = {
