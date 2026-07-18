@@ -1,9 +1,18 @@
+﻿@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  html { scroll-behavior: smooth; }
   body {
-    @apply bg-slate-50 text-slate-900 antialiased font-sans min-h-screen flex flex-col;
+    @apply min-h-screen bg-[#EAF6EF] text-slate-900 antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
   }
+  #root { min-height: 100vh; }
+}
+
+@layer utilities {
+  .font-heading { font-family: 'Poppins', 'Inter', system-ui, sans-serif; }
 }

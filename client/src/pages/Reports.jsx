@@ -1,0 +1,10 @@
+﻿import { Car, Fuel, IndianRupee, Route } from 'lucide-react';
+import PageShell from '../components/shared/PageShell.jsx';
+import Card from '../components/ui/Card.jsx';
+import { analytics } from '../mock/carpoolData.js';
+
+export default function Reports() {
+  const maxTrips = Math.max(...analytics.map((item) => item.trips));
+  return <PageShell eyebrow="Analytics" title="Reports & Analytics" description="Operational view of trips, distance, fuel costs, and cost per kilometer."><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><Metric icon={Car} label="Total trips" value="56" /><Metric icon={Route} label="Distance" value="584 km" /><Metric icon={Fuel} label="Fuel cost" value="INR 4,940" /><Metric icon={IndianRupee} label="Cost/km" value="INR 8.45" /></div><div className="grid gap-6 lg:grid-cols-[1.3fr_0.7fr]"><Card><h3 className="font-heading text-2xl font-extrabold text-slate-950">Weekly trip volume</h3><div className="mt-8 flex h-72 items-end gap-4">{analytics.map((item) => <div key={item.label} className="flex flex-1 flex-col items-center gap-3"><div className="w-full rounded-t-3xl bg-emerald-500" style={{ height: `${(item.trips / maxTrips) * 220}px` }} /><span className="text-sm font-bold text-slate-600">{item.label}</span></div>)}</div></Card><Card><h3 className="font-heading text-2xl font-extrabold text-slate-950">Distance trend</h3><div className="mt-8 space-y-4">{analytics.map((item) => <div key={item.label}><div className="mb-1 flex justify-between text-sm font-bold text-slate-600"><span>{item.label}</span><span>{item.distance} km</span></div><div className="h-3 rounded-full bg-emerald-100"><div className="h-3 rounded-full bg-emerald-600" style={{ width: `${Math.min(100, item.distance / 1.6)}%` }} /></div></div>)}</div></Card></div></PageShell>;
+}
+function Metric({ icon: Icon, label, value }) { return <Card><span className="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-100 text-emerald-700"><Icon className="h-5 w-5" /></span><p className="mt-5 text-sm font-bold text-slate-500">{label}</p><p className="font-heading text-2xl font-extrabold text-slate-950">{value}</p></Card>; }
