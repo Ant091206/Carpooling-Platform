@@ -1,4 +1,4 @@
-import { Navigate } from 'react-router-dom';
+﻿import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import RootLayout from '../layouts/RootLayout.jsx';
 import Home from '../pages/Home.jsx';
@@ -13,6 +13,8 @@ import MyTrips from '../pages/MyTrips.jsx';
 import TripDetail from '../pages/TripDetail.jsx';
 import MyVehicle from '../pages/MyVehicle.jsx';
 import Wallet from '../pages/Wallet.jsx';
+import TransactionHistory from '../pages/TransactionHistory.jsx';
+import PaymentDetails from '../pages/PaymentDetails.jsx';
 import RideHistory from '../pages/RideHistory.jsx';
 import Reports from '../pages/Reports.jsx';
 import Settings from '../pages/Settings.jsx';
@@ -53,15 +55,17 @@ export const appRoutes = [
       { path: 'profile-setup',   element: protect(ProfileSetup) },
       { path: 'dashboard',       element: protect(Dashboard) },
 
-      // Module 6 — Ride search, booking, driver management
+      // Module 6 â€” Ride search, booking, driver management
       { path: 'find-ride',       element: protect(FindRide) },
       { path: 'offer-ride',      element: protect(OfferRide) },
       { path: 'my-rides',        element: protect(MyRides) },
 
-      // Module 7 — Trips, wallet, reports
+      // Module 7 â€” Trips, wallet, reports
       { path: 'my-trips',        element: protect(MyTrips) },
       { path: 'trips/:tripId',   element: protect(TripDetail) },
       { path: 'wallet',          element: protect(Wallet) },
+      { path: 'wallet/transactions', element: protect(TransactionHistory) },
+      { path: 'wallet/transactions/:id', element: protect(PaymentDetails) },
       { path: 'ride-history',    element: protect(RideHistory) },
       { path: 'reports',         element: protect(Reports) },
 
@@ -74,3 +78,4 @@ export const appRoutes = [
 ];
 
 export default appRoutes;
+
