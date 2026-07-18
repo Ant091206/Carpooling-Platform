@@ -1,4 +1,4 @@
-const pool = require('../config/db');
+import { pool } from '../config/db.js';
 
 class VehicleRepository {
     async create(vehicleData) {
@@ -79,4 +79,4 @@ class VehicleRepository {
     }
 }
 
-module.exports = new VehicleRepository();
+export default new VehicleRepository();

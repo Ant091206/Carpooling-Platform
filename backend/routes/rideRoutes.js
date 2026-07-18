@@ -1,8 +1,8 @@
-const express = require('express');
-const { body, param } = require('express-validator');
-const rideController = require('../controllers/rideController');
-const mockAuth = require('../middlewares/mockAuth');
-const validate = require('../middlewares/validate');
+import express from 'express';
+import { body, param } from 'express-validator';
+import rideController from '../controllers/rideController.js';
+import authMiddleware from '../middleware/authMiddleware.js';
+import { validateRequest } from '../middleware/validationMiddleware.js';
 
 const router = express.Router();
 
@@ -13,64 +13,9 @@ const router = express.Router();
  *   description: Ride publishing and management API
  */
 
-/**
- * @swagger
- * /rides:
- *   post:
- *     summary: Publish a new ride
- *     tags: [Rides]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - vehicle_id
- *               - pickup_name
- *               - pickup_lng
- *               - pickup_lat
- *               - destination_name
- *               - dest_lng
- *               - dest_lat
- *               - departure_time
- *               - available_seats
- *               - fare_per_seat
- *             properties:
- *               vehicle_id:
- *                 type: integer
- *               pickup_name:
- *                 type: string
- *               pickup_lng:
- *                 type: number
- *               pickup_lat:
- *                 type: number
- *               destination_name:
- *                 type: string
- *               dest_lng:
- *                 type: number
- *               dest_lat:
- *                 type: number
- *               departure_time:
- *                 type: string
- *                 format: date-time
- *               available_seats:
- *                 type: integer
- *                 minimum: 1
- *               fare_per_seat:
- *                 type: number
- *                 minimum: 1
- *               is_recurring:
- *                 type: boolean
- *               notes:
- *                 type: string
- *     responses:
- *       201:
- *         description: Ride published successfully
- */
 router.post(
     '/',
-    mockAuth,
+    authMiddleware,
     [
         body('vehicle_id').isInt().withMessage('Valid vehicle ID is required'),
         body('pickup_name').notEmpty().withMessage('Pickup name is required'),
@@ -85,83 +30,23 @@ router.post(
         body('is_recurring').optional().isBoolean(),
         body('notes').optional().isString()
     ],
-    validate,
+    validateRequest,
     rideController.publishRide
 );
 
-/**
- * @swagger
- * /rides/my:
- *   get:
- *     summary: Get all published rides by the authenticated driver
- *     tags: [Rides]
- *     responses:
- *       200:
- *         description: Rides retrieved successfully
- */
-router.get('/my', mockAuth, rideController.getMyRides);
+router.get('/my', authMiddleware, rideController.getMyRides);
 
-/**
- * @swagger
- * /rides/{id}:
- *   get:
- *     summary: Get ride details by ID
- *     tags: [Rides]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     responses:
- *       200:
- *         description: Ride retrieved successfully
- */
 router.get(
     '/:id',
-    mockAuth,
+    authMiddleware,
     [param('id').isInt().withMessage('Invalid ride ID')],
-    validate,
+    validateRequest,
     rideController.getRideById
 );
 
-/**
- * @swagger
- * /rides/{id}:
- *   put:
- *     summary: Update an existing scheduled ride
- *     tags: [Rides]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               departure_time:
- *                 type: string
- *                 format: date-time
- *               available_seats:
- *                 type: integer
- *                 minimum: 1
- *               fare_per_seat:
- *                 type: number
- *                 minimum: 1
- *               notes:
- *                 type: string
- *     responses:
- *       200:
- *         description: Ride updated successfully
- */
 router.put(
     '/:id',
-    mockAuth,
+    authMiddleware,
     [
         param('id').isInt().withMessage('Invalid ride ID'),
         body('departure_time').optional().isISO8601().withMessage('Valid departure time is required'),
@@ -169,104 +54,40 @@ router.put(
         body('fare_per_seat').optional().isFloat({ gt: 0 }).withMessage('Fare must be greater than 0'),
         body('notes').optional().isString()
     ],
-    validate,
+    validateRequest,
     rideController.updateRide
 );
 
-/**
- * @swagger
- * /rides/{id}:
- *   delete:
- *     summary: Delete a scheduled ride
- *     tags: [Rides]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     responses:
- *       200:
- *         description: Ride deleted successfully
- */
 router.delete(
     '/:id',
-    mockAuth,
+    authMiddleware,
     [param('id').isInt().withMessage('Invalid ride ID')],
-    validate,
+    validateRequest,
     rideController.deleteRide
 );
 
-/**
- * @swagger
- * /rides/{id}/start:
- *   patch:
- *     summary: Start a ride
- *     tags: [Rides]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     responses:
- *       200:
- *         description: Ride started successfully
- */
 router.patch(
     '/:id/start',
-    mockAuth,
+    authMiddleware,
     [param('id').isInt().withMessage('Invalid ride ID')],
-    validate,
+    validateRequest,
     rideController.startRide
 );
 
-/**
- * @swagger
- * /rides/{id}/complete:
- *   patch:
- *     summary: Complete a ride
- *     tags: [Rides]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     responses:
- *       200:
- *         description: Ride completed successfully
- */
 router.patch(
     '/:id/complete',
-    mockAuth,
+    authMiddleware,
     [param('id').isInt().withMessage('Invalid ride ID')],
-    validate,
+    validateRequest,
     rideController.completeRide
 );
 
-/**
- * @swagger
- * /rides/{id}/cancel:
- *   patch:
- *     summary: Cancel a ride
- *     tags: [Rides]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     responses:
- *       200:
- *         description: Ride cancelled successfully
- */
 router.patch(
     '/:id/cancel',
-    mockAuth,
+    authMiddleware,
     [param('id').isInt().withMessage('Invalid ride ID')],
-    validate,
+    validateRequest,
     rideController.cancelRide
 );
 
-module.exports = router;
+export default router;

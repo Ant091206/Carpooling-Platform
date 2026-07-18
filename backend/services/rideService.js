@@ -1,6 +1,7 @@
-const rideRepository = require('../repositories/rideRepository');
-const vehicleRepository = require('../repositories/vehicleRepository');
-const mapboxService = require('./mapboxService');
+import rideRepository from '../repositories/rideRepository.js';
+import vehicleRepository from '../repositories/vehicleRepository.js';
+import mapboxService from './mapboxService.js';
+import ApiError from '../utils/ApiError.js';
 
 class RideService {
     async publishRide(driver_id, rideData) {
@@ -13,22 +14,22 @@ class RideService {
         // 1. Validate Vehicle Existence and Ownership
         const vehicle = await vehicleRepository.findByIdAndOwner(vehicle_id, driver_id);
         if (!vehicle) {
-            throw new Error('Vehicle not found or you do not have permission.');
+            throw new ApiError(404, 'Vehicle not found or you do not have permission.');
         }
 
         // 2. Validate Seats
         if (available_seats > vehicle.seat_capacity) {
-            throw new Error(`Available seats cannot exceed vehicle capacity (${vehicle.seat_capacity}).`);
+            throw new ApiError(400, `Available seats cannot exceed vehicle capacity (${vehicle.seat_capacity}).`);
         }
 
         // 3. Validate Date (must be in future)
         if (new Date(departure_time) <= new Date()) {
-            throw new Error('Departure time must be in the future.');
+            throw new ApiError(400, 'Departure time must be in the future.');
         }
 
         // 4. Validate Pickup != Destination
         if (pickup_lng === dest_lng && pickup_lat === dest_lat) {
-            throw new Error('Pickup location cannot be the same as destination location.');
+            throw new ApiError(400, 'Pickup location cannot be the same as destination location.');
         }
 
         // 5. Calculate Route Details from Mapbox
@@ -61,7 +62,7 @@ class RideService {
     async getRideById(id, driver_id) {
         const ride = await rideRepository.findById(id);
         if (!ride || (driver_id && ride.driver_id !== driver_id)) {
-            throw new Error('Ride not found or access denied.');
+            throw new ApiError(404, 'Ride not found or access denied.');
         }
         return ride;
     }
@@ -74,23 +75,20 @@ class RideService {
         const ride = await this.getRideById(id, driver_id);
 
         if (ride.ride_status !== 'Scheduled') {
-            throw new Error('Can only update rides that are in Scheduled status.');
+            throw new ApiError(400, 'Can only update rides that are in Scheduled status.');
         }
 
         // If seats are updated, validate against vehicle again
         if (updateData.available_seats) {
             const vehicle = await vehicleRepository.findByIdAndOwner(ride.vehicle_id, driver_id);
             if (updateData.available_seats > vehicle.seat_capacity) {
-                throw new Error(`Available seats cannot exceed vehicle capacity (${vehicle.seat_capacity}).`);
+                throw new ApiError(400, `Available seats cannot exceed vehicle capacity (${vehicle.seat_capacity}).`);
             }
         }
 
         if (updateData.departure_time && new Date(updateData.departure_time) <= new Date()) {
-            throw new Error('Departure time must be in the future.');
+            throw new ApiError(400, 'Departure time must be in the future.');
         }
-
-        // To keep it simple, changing locations via update is not allowed here.
-        // If they want to change locations, they should cancel and publish a new ride.
 
         await rideRepository.update(id, driver_id, updateData);
         return this.getRideById(id, driver_id);
@@ -99,7 +97,7 @@ class RideService {
     async deleteRide(id, driver_id) {
         const ride = await this.getRideById(id, driver_id);
         if (ride.ride_status === 'In Progress' || ride.ride_status === 'Started') {
-             throw new Error('Cannot delete a ride that has already started.');
+             throw new ApiError(400, 'Cannot delete a ride that has already started.');
         }
         await rideRepository.delete(id, driver_id);
         return true;
@@ -118,7 +116,7 @@ class RideService {
         };
 
         if (!validTransitions[ride.ride_status].includes(status)) {
-            throw new Error(`Invalid status transition from ${ride.ride_status} to ${status}.`);
+            throw new ApiError(400, `Invalid status transition from ${ride.ride_status} to ${status}.`);
         }
 
         await rideRepository.updateStatus(id, driver_id, status);
@@ -126,4 +124,4 @@ class RideService {
     }
 }
 
-module.exports = new RideService();
+export default new RideService();

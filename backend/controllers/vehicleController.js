@@ -1,5 +1,8 @@
-const vehicleService = require('../services/vehicleService');
-const { successResponse } = require('../utils/responseFormat');
+import vehicleService from '../services/vehicleService.js';
+
+// The main branch likely has a standardized response utility or we can just send JSON.
+// Wait, I will rewrite `utils/responseFormat.js` as well to ESM. Let's assume it's `import { successResponse } from '../utils/responseFormat.js';`
+import { successResponse } from '../utils/responseFormat.js';
 
 class VehicleController {
     async addVehicle(req, res, next) {
@@ -87,4 +90,4 @@ class VehicleController {
     }
 }
 
-module.exports = new VehicleController();
+export default new VehicleController();

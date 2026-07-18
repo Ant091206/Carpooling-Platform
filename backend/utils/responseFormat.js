@@ -1,19 +1,15 @@
-const successResponse = (message, data = {}) => {
+export const successResponse = (message, data = null) => {
     return {
         success: true,
-        message: message,
-        data: data
+        message,
+        data
     };
 };
 
-const errorResponse = (message) => {
+export const errorResponse = (message, errors = null) => {
     return {
         success: false,
-        message: message
+        message,
+        errors
     };
-};
-
-module.exports = {
-    successResponse,
-    errorResponse
 };

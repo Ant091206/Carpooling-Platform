@@ -1,53 +1,32 @@
-const express = require('express');
-const cors = require('cors');
-require('dotenv').config();
-const swaggerUi = require('swagger-ui-express');
-const swaggerJsdoc = require('swagger-jsdoc');
-const path = require('path');
+import app from './app.js';
+import logger from './utils/logger.js';
 
-const { errorHandler } = require('./middlewares/errorHandler');
-const vehicleRoutes = require('./routes/vehicleRoutes');
-const rideRoutes = require('./routes/rideRoutes');
+const PORT = process.env.PORT || 5000;
 
-const app = express();
-
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Serve uploaded images statically
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-// Swagger setup
-const swaggerOptions = {
-    definition: {
-        openapi: '3.0.0',
-        info: {
-            title: 'Enterprise Carpooling Platform API',
-            version: '1.0.0',
-            description: 'API documentation for the Vehicle Management & Ride Publishing modules.',
-        },
-        servers: [
-            {
-                url: `http://localhost:${process.env.PORT || 3000}`,
-            },
-        ],
-    },
-    apis: ['./routes/*.js'],
-};
-const swaggerSpec = swaggerJsdoc(swaggerOptions);
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-
-// Routes
-app.use('/vehicle', vehicleRoutes);
-app.use('/rides', rideRoutes);
-
-// Global Error Handler
-app.use(errorHandler);
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-    console.log(`Swagger docs available at http://localhost:${PORT}/api-docs`);
+const server = app.listen(PORT, () => {
+  if (logger && logger.info) {
+      logger.info(`Server successfully started on port ${PORT} in [${process.env.NODE_ENV || 'development'}] environment.`);
+  } else {
+      console.log(`Server successfully started on port ${PORT} in [${process.env.NODE_ENV || 'development'}] environment.`);
+  }
 });
+
+// Graceful shutdown handling
+const shutdown = (signal) => {
+  if (logger && logger.warn) {
+      logger.warn(`Received signal: ${signal}. Shutting down server gracefully...`);
+  } else {
+      console.warn(`Received signal: ${signal}. Shutting down server gracefully...`);
+  }
+  server.close(() => {
+    if (logger && logger.info) {
+        logger.info('HTTP server closed.');
+    } else {
+        console.info('HTTP server closed.');
+    }
+    process.exit(0);
+  });
+};
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));

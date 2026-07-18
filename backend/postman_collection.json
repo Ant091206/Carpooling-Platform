@@ -1,0 +1,212 @@
+{
+  "info": {
+    "_postman_id": "8e367851-9257-4148-afc3-a3d2e67a58a7",
+    "name": "Enterprise Carpooling Platform - Module 1 (Auth)",
+    "description": "Postman Collection for the Authentication & Authorization APIs of the Enterprise Carpooling Platform.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Register Employee",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"organization_id\": 1,\n  \"employee_id\": \"EMP_001\",\n  \"name\": \"Jane Doe\",\n  \"email\": \"jane.doe@google.com\",\n  \"password\": \"securepassword123\",\n  \"phone\": \"+1-555-0144\",\n  \"department\": \"Engineering\",\n  \"designation\": \"Software Architect\",\n  \"role\": \"EMPLOYEE\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/register",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "register"
+          ]
+        },
+        "description": "Onboards a new employee into a registered organization. Checks for company code validity, email duplication, and hashes the password."
+      },
+      "response": []
+    },
+    {
+      "name": "Login Employee",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const response = pm.response.json();",
+              "if (response.success && response.data && response.data.accessToken) {",
+              "    pm.environment.set(\"accessToken\", response.data.accessToken);",
+              "    pm.globals.set(\"accessToken\", response.data.accessToken);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"jane.doe@google.com\",\n  \"password\": \"securepassword123\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        },
+        "description": "Authenticates user credentials, sets HTTP-only refresh cookies, and returns the access token."
+      },
+      "response": []
+    },
+    {
+      "name": "Get Current User Profile",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/me",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "me"
+          ]
+        },
+        "description": "Returns current logged-in employee profile information. Requires header Bearer authorization token."
+      },
+      "response": []
+    },
+    {
+      "name": "Refresh Access Token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const response = pm.response.json();",
+              "if (response.success && response.data && response.data.accessToken) {",
+              "    pm.environment.set(\"accessToken\", response.data.accessToken);",
+              "    pm.globals.set(\"accessToken\", response.data.accessToken);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"refreshToken\": \"{{refreshTokenOptionalFallback}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/refresh-token",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "refresh-token"
+          ]
+        },
+        "description": "Re-issues a new short-lived access token. Refresh token is read from cookie jar or optional body fallback parameter."
+      },
+      "response": []
+    },
+    {
+      "name": "Logout Employee",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"refreshToken\": \"{{refreshTokenOptionalFallback}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/logout",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "logout"
+          ]
+        },
+        "description": "Logs out the user, deleting the refresh token from the database and clearing client cookies."
+      },
+      "response": []
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.environment.get(\"baseUrl\")) {",
+          "    pm.environment.set(\"baseUrl\", \"http://localhost:5000\");",
+          "}"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ]
+}

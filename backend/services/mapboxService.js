@@ -1,4 +1,4 @@
-const axios = require('axios');
+import axios from 'axios';
 
 class MapboxService {
     constructor() {
@@ -14,8 +14,8 @@ class MapboxService {
      * @param {number} destLat 
      */
     async getRouteDetails(pickupLng, pickupLat, destLng, destLat) {
-        if (!this.accessToken) {
-            console.warn('Mapbox Access Token is missing. Simulating route details.');
+        if (!this.accessToken || this.accessToken === 'your_mapbox_token_here') {
+            console.warn('Mapbox Access Token is missing or default. Simulating route details.');
             return {
                 distance_km: 10.5,
                 estimated_duration: 25, // minutes
@@ -56,4 +56,4 @@ class MapboxService {
     }
 }
 
-module.exports = new MapboxService();
+export default new MapboxService();

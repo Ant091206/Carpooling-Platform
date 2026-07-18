@@ -1,4 +1,4 @@
-const pool = require('../config/db');
+import { pool } from '../config/db.js';
 
 class RideRepository {
     async create(rideData) {
@@ -94,4 +94,4 @@ class RideRepository {
     }
 }
 
-module.exports = new RideRepository();
+export default new RideRepository();

@@ -1,5 +1,5 @@
-const rideService = require('../services/rideService');
-const { successResponse } = require('../utils/responseFormat');
+import rideService from '../services/rideService.js';
+import { successResponse } from '../utils/responseFormat.js';
 
 class RideController {
     async publishRide(req, res, next) {
@@ -89,4 +89,4 @@ class RideController {
     }
 }
 
-module.exports = new RideController();
+export default new RideController();
