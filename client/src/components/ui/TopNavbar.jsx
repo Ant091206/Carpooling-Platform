@@ -5,12 +5,12 @@ import Button from './Button.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 
 const appLinks = [
-  ['Dashboard', '/dashboard'],
-  ['Find Ride', '/find-ride'],
+  ['Dashboard',  '/dashboard'],
+  ['Find Ride',  '/find-ride'],
   ['Offer Ride', '/offer-ride'],
-  ['Trips', '/my-trips'],
-  ['Wallet', '/wallet'],
-  ['Reports', '/reports'],
+  ['My Rides',   '/my-rides'],
+  ['My Trips',   '/my-trips'],
+  ['Wallet',     '/wallet'],
 ];
 
 export default function TopNavbar({ publicMode = false }) {

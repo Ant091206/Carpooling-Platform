@@ -1,40 +1,36 @@
 import axios from 'axios';
 
+// ─── Single Axios Instance ────────────────────────────────────────────────────
+// This is the ONE AND ONLY axios instance for the entire application.
+// Every service file must import from this module.
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: { 'Content-Type': 'application/json' },
 });
 
-// Flag to prevent multiple simultaneous token refreshes
+// Token-refresh queue (prevents multiple simultaneous refresh calls)
 let isRefreshing = false;
 let failedQueue = [];
 
 const processQueue = (error, token = null) => {
   failedQueue.forEach((prom) => {
-    if (error) {
-      prom.reject(error);
-    } else {
-      prom.resolve(token);
-    }
+    if (error) prom.reject(error);
+    else prom.resolve(token);
   });
   failedQueue = [];
 };
 
-// Request Interceptor: Automatically inject the Bearer token
+// ─── Request Interceptor — inject Bearer token ────────────────────────────────
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// Response Interceptor: Capture response errors and handle token refresh
+// ─── Response Interceptor — token refresh + auto-logout ──────────────────────
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -57,11 +53,8 @@ api.interceptors.response.use(
 
       try {
         const refreshToken = localStorage.getItem('refreshToken');
-        if (!refreshToken) {
-          throw new Error('No refresh token available');
-        }
+        if (!refreshToken) throw new Error('No refresh token available');
 
-        // Call the refresh-token endpoint (use raw axios to avoid interceptor loop)
         const response = await axios.post(
           `${api.defaults.baseURL}/auth/refresh-token`,
           { refreshToken }
@@ -70,9 +63,7 @@ api.interceptors.response.use(
         const { token: newAccessToken, refreshToken: newRefreshToken } = response.data.data;
 
         localStorage.setItem('token', newAccessToken);
-        if (newRefreshToken) {
-          localStorage.setItem('refreshToken', newRefreshToken);
-        }
+        if (newRefreshToken) localStorage.setItem('refreshToken', newRefreshToken);
 
         api.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`;
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
@@ -81,16 +72,12 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
-        
-        // Refresh token has failed / expired: perform auto-logout
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
         localStorage.removeItem('user');
-        
         if (window.location.pathname !== '/login') {
           window.location.href = '/login?expired=true';
         }
-        
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
@@ -102,3 +89,43 @@ api.interceptors.response.use(
 );
 
 export default api;
+
+// ─── Named API collections ────────────────────────────────────────────────────
+// These are thin wrappers over the single axios instance above.
+// All pages and services should import from here or from a service file that
+// itself imports `api` from this module.
+
+export const ridesAPI = {
+  search:     (params) => api.get('/rides', { params }),
+  getById:    (id)     => api.get(`/rides/${id}`),
+  getMyRides: ()       => api.get('/rides/my'),
+  offer:      (data)   => api.post('/rides', data),
+  update:     (id, d)  => api.put(`/rides/${id}`, d),
+  remove:     (id)     => api.delete(`/rides/${id}`),
+  start:      (id)     => api.patch(`/rides/${id}/start`),
+  complete:   (id)     => api.patch(`/rides/${id}/complete`),
+  cancel:     (id)     => api.patch(`/rides/${id}/cancel`),
+};
+
+export const bookingsAPI = {
+  book:           (data) => api.post('/bookings', data),
+  getMyBookings:  ()     => api.get('/bookings'),
+  getById:        (id)   => api.get(`/bookings/${id}`),
+  accept:         (id)   => api.patch(`/bookings/${id}/accept`),
+  reject:         (id)   => api.patch(`/bookings/${id}/reject`),
+  cancel:         (id)   => api.patch(`/bookings/${id}/cancel`),
+};
+
+export const walletAPI = {
+  get:          () => api.get('/wallet'),
+  transactions: () => api.get('/wallet/transactions'),
+  topup:        (data) => api.post('/wallet/topup', data),
+};
+
+export const adminAPI = {
+  getDashboard:     ()           => api.get('/admin/dashboard'),
+  getUsers:         ()           => api.get('/admin/users'),
+  updateUserStatus: (id, status) => api.put(`/admin/users/${id}/status`, { status }),
+  getRides:         ()           => api.get('/admin/rides'),
+  cancelRide:       (id)         => api.delete(`/admin/rides/${id}`),
+};
