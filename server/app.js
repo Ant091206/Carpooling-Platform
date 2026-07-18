@@ -13,7 +13,7 @@ import rideRoutes from './routes/rideRoutes.js';
 import bookingRoutes from './routes/bookingRoutes.js';
 import walletRoutes from './routes/walletRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
-import adminRoutes from './routes/adminRoutes.js';
+import adminRoutes from './routes/admin/adminRoutes.js';
 import tripRoutes from './routes/tripRoutes.js';
 import tripController from './controllers/tripController.js';
 import authMiddleware from './middleware/authMiddleware.js';

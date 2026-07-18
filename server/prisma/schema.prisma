@@ -79,6 +79,7 @@ model User {
   notifications            Notification[]
   notificationPreference   NotificationPreference?
   emailQueue               EmailQueue[]
+  adminActivities          AdminActivity[]        @relation("AdminActivities")
 
   @@unique([organizationId, employeeId], name: "idx_user_org_emp")
   @@index([role], map: "idx_user_role")
@@ -440,3 +441,36 @@ model EmailQueue {
   @@index([scheduledAt], map: "idx_email_queue_scheduled")
   @@map("email_queue")
 }
+
+// ─── Module 13: Enterprise Admin Dashboard ───────────────────────────────────────
+
+model AdminActivity {
+  id          Int      @id @default(autoincrement()) @db.UnsignedInt
+  adminId     Int?     @map("admin_id") @db.UnsignedInt
+  action      String   @db.VarChar(100)
+  module      String   @db.VarChar(100)
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+
+  admin       User?    @relation("AdminActivities", fields: [adminId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([adminId], map: "idx_admin_activity_admin_id")
+  @@index([action], map: "idx_admin_activity_action")
+  @@index([module], map: "idx_admin_activity_module")
+  @@index([createdAt], map: "idx_admin_activity_created_at")
+  @@map("admin_activities")
+}
+
+model Announcement {
+  id        Int      @id @default(autoincrement()) @db.UnsignedInt
+  title     String   @db.VarChar(255)
+  message   String   @db.Text
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  @@index([isActive], map: "idx_announcement_is_active")
+  @@index([createdAt], map: "idx_announcement_created_at")
+  @@map("announcements")
+}
+
