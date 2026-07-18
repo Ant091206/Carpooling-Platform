@@ -1,0 +1,191 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum OrgStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+  SUSPENDED
+}
+
+enum Role {
+  ADMIN
+  EMPLOYEE
+}
+
+model Organization {
+  id          Int        @id @default(autoincrement()) @db.UnsignedInt
+  name        String     @db.VarChar(150)
+  companyCode String     @unique @map("company_code") @db.VarChar(50)
+  email       String     @db.VarChar(100)
+  phone       String?    @db.VarChar(20)
+  address     String?    @db.Text
+  logo        String?    @db.VarChar(255)
+  website     String?    @db.VarChar(255)
+  status      OrgStatus  @default(ACTIVE)
+  createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt   DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  users       User[]
+
+  @@index([status], map: "idx_org_status")
+  @@map("organizations")
+}
+
+model User {
+  id             Int            @id @default(autoincrement()) @db.UnsignedInt
+  organizationId Int            @map("organization_id") @db.UnsignedInt
+  employeeId     String         @map("employee_id") @db.VarChar(50)
+  name           String         @db.VarChar(100)
+  email          String         @unique @db.VarChar(100)
+  password       String         @db.VarChar(255)
+  phone          String?        @db.VarChar(20)
+  department     String?        @db.VarChar(100)
+  designation    String?        @db.VarChar(100)
+  avatar         String?        @db.VarChar(255)
+  role           Role           @default(EMPLOYEE)
+  status         UserStatus     @default(ACTIVE)
+  lastLogin      DateTime?      @map("last_login") @db.Timestamp(0)
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt      DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  organization      Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  refreshTokens     RefreshToken[]
+  savedPlaces       SavedPlace[]
+  vehicles          Vehicle[]
+  rides             Ride[]
+  passengerBookings Booking[]      @relation("PassengerBookings")
+  driverBookings    Booking[]      @relation("DriverBookings")
+
+  @@unique([organizationId, employeeId], name: "idx_user_org_emp")
+  @@index([role], map: "idx_user_role")
+  @@index([status], map: "idx_user_status")
+  @@map("users")
+}
+
+model SavedPlace {
+  id        Int      @id @default(autoincrement()) @db.UnsignedInt
+  userId    Int      @map("user_id") @db.UnsignedInt
+  placeName String   @map("place_name") @db.VarChar(100)
+  address   String   @db.VarChar(255)
+  latitude  Decimal  @db.Decimal(10, 8)
+  longitude Decimal  @db.Decimal(11, 8)
+  isDefault Int      @default(0) @map("is_default") @db.TinyInt
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId], map: "idx_saved_places_user_id")
+  @@map("saved_places")
+}
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement()) @db.UnsignedInt
+  userId    Int      @map("user_id") @db.UnsignedInt
+  token     String   @unique @db.VarChar(512)
+  expiresAt DateTime @map("expires_at") @db.Timestamp(0)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId], map: "idx_refresh_user_id")
+  @@map("refresh_tokens")
+}
+
+model Vehicle {
+  id          Int      @id @default(autoincrement()) @db.UnsignedInt
+  userId      Int      @map("user_id") @db.UnsignedInt
+  model       String   @db.VarChar(100)
+  plateNumber String   @unique @map("plate_number") @db.VarChar(50)
+  color       String   @db.VarChar(50)
+  capacity    Int      @db.Int
+  type        String?  @db.VarChar(50)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  rides       Ride[]
+
+  @@index([userId], map: "idx_vehicles_user_id")
+  @@map("vehicles")
+}
+
+model Ride {
+  id                  Int          @id @default(autoincrement()) @db.UnsignedInt
+  driverId            Int          @map("driver_id") @db.UnsignedInt
+  vehicleId           Int          @map("vehicle_id") @db.UnsignedInt
+  pickupName          String       @map("pickup_name") @db.VarChar(255)
+  pickupLocation      Unsupported("point") @map("pickup_location")
+  destinationName     String       @map("destination_name") @db.VarChar(255)
+  destinationLocation Unsupported("point") @map("destination_location")
+  departureTime       DateTime     @map("departure_time") @db.DateTime(0)
+  availableSeats      Int          @map("available_seats") @db.Int
+  farePerSeat         Decimal      @map("fare_per_seat") @db.Decimal(10, 2)
+  distanceKm          Decimal?     @map("distance_km") @db.Decimal(10, 2)
+  estimatedDuration   Int?         @map("estimated_duration") @db.Int
+  routeGeometry       String?      @map("route_geometry") @db.LongText
+  rideStatus          RideStatus   @default(Scheduled) @map("ride_status")
+  isRecurring         Boolean      @default(false) @map("is_recurring")
+  notes               String?      @db.Text
+  createdAt           DateTime     @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt           DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  driver              User         @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  vehicle             Vehicle      @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  bookings            Booking[]
+
+  @@index([driverId], map: "idx_rides_driver_id")
+  @@index([departureTime], map: "idx_rides_departure_time")
+  @@index([rideStatus], map: "idx_rides_status")
+  @@map("rides")
+}
+
+enum RideStatus {
+  Scheduled
+  Started
+  InProgress @map("In Progress")
+  Completed
+  Cancelled
+}
+
+enum BookingStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+  COMPLETED
+}
+
+model Booking {
+  id             Int           @id @default(autoincrement()) @db.UnsignedInt
+  rideId         Int           @map("ride_id") @db.UnsignedInt
+  passengerId    Int           @map("passenger_id") @db.UnsignedInt
+  driverId       Int           @map("driver_id") @db.UnsignedInt
+  requestedSeats Int           @map("requested_seats") @db.Int
+  status         BookingStatus @default(PENDING)
+  bookingDate    DateTime      @default(now()) @map("booking_date") @db.Timestamp(0)
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt      DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  ride      Ride @relation(fields: [rideId], references: [id], onDelete: Cascade)
+  passenger User @relation("PassengerBookings", fields: [passengerId], references: [id], onDelete: Cascade)
+  driver    User @relation("DriverBookings", fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@index([rideId], map: "idx_booking_ride_id")
+  @@index([passengerId], map: "idx_booking_passenger_id")
+  @@index([driverId], map: "idx_booking_driver_id")
+  @@map("bookings")
+}

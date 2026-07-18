@@ -1,30 +1,44 @@
+import { PrismaClient } from '@prisma/client';
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
+// We assume logger is imported if available, but to prevent errors if logger doesn't exist in our branch, we'll use console.log as fallback or import it properly.
+// The main branch had: import logger from '../utils/logger.js';
+import logger from '../utils/logger.js';
 
 dotenv.config();
 
-const pool = mysql.createPool({
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '3306', 10),
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASS || '',
-  database: process.env.DB_NAME || 'enterprise_carpool',
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-  enableKeepAlive: true,
-  keepAliveInitialDelay: 0
+const prisma = new PrismaClient({
+  log: process.env.NODE_ENV === 'development' ? ['query', 'info', 'warn', 'error'] : ['error']
 });
 
-// Test connection on startup
+// Immediately verify connection on startup
 (async () => {
   try {
-    const connection = await pool.getConnection();
-    console.log('Successfully connected to MySQL database pool.');
-    connection.release();
+    await prisma.$connect();
+    if (logger && logger.info) {
+        logger.info('Prisma Client connected to MySQL database successfully.');
+    } else {
+        console.log('Prisma Client connected to MySQL database successfully.');
+    }
   } catch (error) {
-    console.error('Database connection failed:', error.message);
+    if (logger && logger.error) {
+        logger.error('Failed to connect to MySQL database via Prisma Client:', error);
+    } else {
+        console.error('Failed to connect to MySQL database via Prisma Client:', error);
+    }
   }
 })();
 
-export default pool;
+// Also expose mysql2 pool for Modules 4 & 5
+const pool = mysql.createPool({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0
+});
+
+export default prisma;
+export { prisma, pool };

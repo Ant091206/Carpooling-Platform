@@ -4,14 +4,14 @@
   "description": "Monorepo Workspace for Enterprise Carpooling Platform",
   "private": true,
   "scripts": {
+    "postinstall": "npm run install:all",
     "install:server": "cd server && npm install",
     "install:client": "cd client && npm install --legacy-peer-deps",
-    "install:backend": "cd backend && npm install",
-    "install:all": "npm run install:server && npm run install:client && npm run install:backend",
+    "install:all": "concurrently \"npm run install:server\" \"npm run install:client\"",
+    "db:prep": "cd server && npx prisma generate",
     "dev:server": "cd server && npm run dev",
     "dev:client": "cd client && npm run dev",
-    "dev:backend": "cd backend && npm run dev",
-    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\" \"npm run dev:backend\""
+    "start": "npm run db:prep && concurrently --kill-others \"npm run dev:server\" \"npm run dev:client\""
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

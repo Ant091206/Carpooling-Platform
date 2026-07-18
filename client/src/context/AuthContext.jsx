@@ -1,5 +1,5 @@
 import { createContext, useState, useEffect, useContext } from 'react';
-import api from '../services/api.js';
+import authService from '../services/auth.service.js';
 
 const AuthContext = createContext(null);
 
@@ -12,14 +12,16 @@ export const AuthProvider = ({ children }) => {
       const token = localStorage.getItem('token');
       const savedUser = localStorage.getItem('user');
 
-      if (token && savedUser) {
+      if (token) {
         try {
-          setUser(JSON.parse(savedUser));
-          // Optional: Verify token freshness with a quick backend call
-          // const res = await api.get('/auth/me');
-          // setUser(res.data.data);
+          if (savedUser) {
+            setUser(JSON.parse(savedUser));
+          }
+          // Fetch freshest user status from database on start
+          const freshUser = await authService.getCurrentUser();
+          setUser(freshUser);
         } catch (error) {
-          console.error('Failed to parse saved auth profile', error);
+          console.error('Failed to parse saved auth profile / verify identity:', error);
           logout();
         }
       }
@@ -32,13 +34,8 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     setLoading(true);
     try {
-      const response = await api.post('/auth/login', { email, password });
-      const { token, user: userProfile } = response.data.data;
-      
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(userProfile));
-      setUser(userProfile);
-      
+      const loggedUser = await authService.login(email, password);
+      setUser(loggedUser);
       return { success: true };
     } catch (error) {
       return {
@@ -53,13 +50,8 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     setLoading(true);
     try {
-      const response = await api.post('/auth/register', userData);
-      const { token, user: userProfile } = response.data.data;
-
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(userProfile));
-      setUser(userProfile);
-
+      const registeredUser = await authService.register(userData);
+      setUser(registeredUser);
       return { success: true };
     } catch (error) {
       return {
@@ -71,10 +63,29 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
+  const logout = async () => {
+    setLoading(true);
+    try {
+      await authService.logout();
+    } catch (error) {
+      console.error('Logout error:', error.message);
+    } finally {
+      setUser(null);
+      setLoading(false);
+    }
+  };
+
+  const updateProfile = async (profileData) => {
+    try {
+      const updatedUser = await authService.updateProfile(profileData);
+      setUser(updatedUser);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Profile update failed.'
+      };
+    }
   };
 
   const value = {
@@ -83,6 +94,7 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
+    updateProfile,
     isAuthenticated: !!user
   };
 
