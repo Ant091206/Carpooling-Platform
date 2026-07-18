@@ -79,6 +79,7 @@ model User {
   notifications            Notification[]
   notificationPreference   NotificationPreference?
   emailQueue               EmailQueue[]
+  systemLogs               SystemLog[]
 
   @@unique([organizationId, employeeId], name: "idx_user_org_emp")
   @@index([role], map: "idx_user_role")
@@ -440,3 +441,53 @@ model EmailQueue {
   @@index([scheduledAt], map: "idx_email_queue_scheduled")
   @@map("email_queue")
 }
+
+// ─── Module 15: Production Optimization, DevOps Readiness & System Logging ────
+
+enum LogLevel {
+  INFO
+  WARN
+  ERROR
+}
+
+enum LogModule {
+  AUTH
+  PAYMENT
+  RIDE
+  BOOKING
+  NOTIFICATION
+  ADMIN
+  SYSTEM
+}
+
+model SystemLog {
+  id        Int       @id @default(autoincrement()) @db.UnsignedInt
+  level     LogLevel  @default(INFO)
+  module    LogModule @default(SYSTEM)
+  message   String    @db.Text
+  details   Json?     @db.Json
+  userId    Int?      @map("user_id") @db.UnsignedInt
+  ip        String?   @db.VarChar(45)
+  userAgent String?   @map("user_agent") @db.VarChar(255)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
+
+  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([level], map: "idx_sys_log_level")
+  @@index([module], map: "idx_sys_log_module")
+  @@index([userId], map: "idx_sys_log_user_id")
+  @@index([createdAt], map: "idx_sys_log_created_at")
+  @@map("system_logs")
+}
+
+model SystemSetting {
+  id          Int      @id @default(autoincrement()) @db.UnsignedInt
+  key         String   @unique @db.VarChar(100)
+  value       String   @db.Text
+  description String?  @db.VarChar(255)
+  isPublic    Boolean  @default(false) @map("is_public")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  @@map("system_settings")
+}
+

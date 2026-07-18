@@ -21,6 +21,12 @@ import RideDetailsHistory from '../pages/RideDetailsHistory.jsx';
 import ReviewsProfile from '../pages/ReviewsProfile.jsx';
 import Reports from '../pages/Reports.jsx';
 import Settings from '../pages/Settings.jsx';
+import Notifications from '../pages/Notifications.jsx';
+import NotificationSettings from '../pages/NotificationSettings.jsx';
+import SystemDashboard from '../pages/system/SystemDashboard.jsx';
+import SystemHealth from '../pages/system/SystemHealth.jsx';
+import SystemLogs from '../pages/system/SystemLogs.jsx';
+import SystemSettingsPage from '../pages/system/SystemSettingsPage.jsx';
 import NotFound from '../pages/NotFound.jsx';
 
 // Module 10 — Lazy-loaded Wallet & Payment pages
@@ -59,7 +65,20 @@ export const PublicRoute = ({ children }) => {
   return children;
 };
 
+export const AdminRoute = ({ children }) => {
+  const { user, isAuthenticated, loading } = useAuth();
+  if (loading) return (
+    <div className="grid min-h-[50vh] place-items-center">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-200 border-t-emerald-600" />
+    </div>
+  );
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (user?.role !== 'ADMIN') return <Navigate to="/dashboard" replace />;
+  return children;
+};
+
 const protect = (Page) => <ProtectedRoute><Page /></ProtectedRoute>;
+const protectAdmin = (Page) => <AdminRoute><Page /></AdminRoute>;
 
 export const appRoutes = [
   {
@@ -96,6 +115,16 @@ export const appRoutes = [
       // Supporting pages
       { path: 'my-vehicle',      element: protect(MyVehicle) },
       { path: 'settings',        element: protect(Settings) },
+
+      // Module 12 — Notifications & Preferences
+      { path: 'notifications',   element: protect(Notifications) },
+      { path: 'settings/notifications', element: protect(NotificationSettings) },
+
+      // Module 15 — System & DevOps Administration
+      { path: 'system',          element: protectAdmin(SystemDashboard) },
+      { path: 'system/health',   element: protectAdmin(SystemHealth) },
+      { path: 'system/logs',     element: protectAdmin(SystemLogs) },
+      { path: 'system/settings', element: protectAdmin(SystemSettingsPage) },
 
       { path: '*',               element: <NotFound /> },
     ],

@@ -20,6 +20,9 @@ import authMiddleware from './middleware/authMiddleware.js';
 import historyRoutes from './routes/history/historyRoutes.js';
 import reviewRoutes from './routes/review/reviewRoutes.js';
 import notificationRoutes from './routes/notification/notificationRoutes.js';
+import compression from 'compression';
+import systemRoutes from './routes/system/systemRoutes.js';
+import { apiLimiter, authLimiter, checkMaintenanceMode, sanitizeInput } from './middleware/securityMiddleware.js';
 import errorHandler from './middleware/errorHandler.js';
 import logger from './utils/logger.js';
 import ApiError from './utils/ApiError.js';
@@ -50,9 +53,16 @@ app.use(morgan(morganFormat, {
   }
 }));
 
+// Compression & Security Middlewares
+app.use(compression());
+app.use(sanitizeInput);
+app.use('/api', apiLimiter);
+app.use('/api/auth', authLimiter);
+app.use(checkMaintenanceMode);
+
 // Body Parsers
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Serve static uploads
 app.use('/uploads', express.static(process.env.UPLOAD_PATH || 'uploads/'));
@@ -78,6 +88,7 @@ app.use('/api/history', historyRoutes);
 app.use('/api/review', reviewRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/notification-preferences', notificationRoutes);
+app.use('/api', systemRoutes);
 
 // Swagger setup
 const swaggerOptions = {

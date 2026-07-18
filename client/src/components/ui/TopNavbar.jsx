@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { Car, ChevronDown, LogOut, Menu, User, X } from 'lucide-react';
+import { Car, ChevronDown, LogOut, Menu, User, X, Activity } from 'lucide-react';
 import Button from './Button.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
+import NotificationBell from '../notifications/NotificationBell.jsx';
 
-const appLinks = [
+const baseAppLinks = [
   ['Dashboard',  '/dashboard'],
   ['Find Ride',  '/find-ride'],
   ['Offer Ride', '/offer-ride'],
@@ -18,6 +19,11 @@ export default function TopNavbar({ publicMode = false }) {
   const [open, setOpen] = useState(false);
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
+
+  const appLinks = user?.role === 'ADMIN'
+    ? [...baseAppLinks, ['System', '/system']]
+    : baseAppLinks;
+
   const links = isAuthenticated && !publicMode ? appLinks : [['Benefits', '/#benefits'], ['How it works', '/#how-it-works']];
 
   const handleLogout = () => {
@@ -50,6 +56,7 @@ export default function TopNavbar({ publicMode = false }) {
         <div className="hidden items-center gap-3 lg:flex">
           {isAuthenticated && !publicMode ? (
             <>
+              <NotificationBell />
               <Link to="/profile-setup" className="flex items-center gap-2 rounded-full bg-white px-3 py-2 text-sm font-bold text-slate-700 shadow-sm">
                 <span className="grid h-8 w-8 place-items-center rounded-full bg-emerald-100 text-emerald-700">
                   <User className="h-4 w-4" />

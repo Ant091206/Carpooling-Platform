@@ -151,3 +151,26 @@ export const reviewsAPI = {
   getByUser:  (userId) => api.get(`/review/user/${userId}`),
   getByRide:  (rideId) => api.get(`/review/ride/${rideId}`),
 };
+
+export const notificationsAPI = {
+  getAll:         (params) => api.get('/notifications', { params }),
+  getUnreadCount: ()       => api.get('/notifications/unread-count'),
+  markRead:       (id)     => api.patch(`/notifications/${id}/read`),
+  markAllRead:    ()       => api.patch('/notifications/read-all'),
+  delete:         (id)     => api.delete(`/notifications/${id}`),
+  deleteAll:      ()       => api.delete('/notifications'),
+  getPreferences: ()       => api.get('/notifications/preferences'),
+  updatePreferences: (d)   => api.put('/notifications/preferences', d),
+};
+
+export const systemAPI = {
+  getHealth:      ()       => api.get('/health'),
+  getStatus:      ()       => api.get('/status'),
+  getInfo:        ()       => api.get('/system/info'),
+  getLogs:        (params) => api.get('/system/logs', { params }),
+  getSettings:    ()       => api.get('/system/settings'),
+  updateSettings: (data)   => api.put('/system/settings', data),
+  getBackup:      ()       => api.get('/system/backup'),
+  restoreBackup:  (data)   => api.post('/system/restore', data),
+};
+
