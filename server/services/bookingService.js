@@ -59,6 +59,41 @@ class BookingService {
             booking
         });
 
+        // Module 12 Notifications
+        try {
+            const passenger = await prisma.user.findUnique({
+                where: { id: passengerId },
+                select: { name: true, email: true }
+            });
+            const rideDetails = {
+                rideId: ride.id,
+                pickup: ride.pickupName,
+                destination: ride.destinationName,
+                date: ride.departureTime.toISOString()
+            };
+            const triggerService = (await import('./notification/notificationTriggerService.js')).default;
+            
+            // Notify passenger
+            await triggerService.notifyBookingCreated({
+                userId: passengerId,
+                userName: passenger.name,
+                userEmail: passenger.email,
+                rideDetails,
+                bookingId: booking.id
+            });
+
+            // Notify driver
+            await triggerService.notifySystem({
+                userId: ride.driverId,
+                title: 'New Booking Request',
+                message: `You have received a new booking request from ${passenger.name} for your ride to ${ride.destinationName}.`,
+                priority: 'HIGH',
+                actionUrl: '/my-rides'
+            });
+        } catch (err) {
+            console.error('Error triggering booking created notifications:', err);
+        }
+
         return booking;
     }
 
@@ -94,6 +129,50 @@ class BookingService {
             booking
         });
 
+        try {
+            const passenger = await prisma.user.findUnique({
+                where: { id: booking.passengerId },
+                select: { name: true, email: true }
+            });
+            const driver = await prisma.user.findUnique({
+                where: { id: booking.driverId },
+                select: { name: true, email: true }
+            });
+            const ride = await prisma.ride.findUnique({
+                where: { id: booking.rideId },
+                select: { pickupName: true, destinationName: true, departureTime: true }
+            });
+            const rideDetails = {
+                rideId: booking.rideId,
+                pickup: ride.pickupName,
+                destination: ride.destinationName,
+                date: ride.departureTime.toISOString()
+            };
+            const triggerService = (await import('./notification/notificationTriggerService.js')).default;
+            
+            // Notify passenger
+            await triggerService.notifyBookingCancelled({
+                userId: booking.passengerId,
+                userName: passenger.name,
+                userEmail: passenger.email,
+                rideDetails,
+                bookingId: booking.id,
+                reason: 'Cancelled by passenger'
+            });
+
+            // Notify driver
+            await triggerService.notifyBookingCancelled({
+                userId: booking.driverId,
+                userName: driver.name,
+                userEmail: driver.email,
+                rideDetails,
+                bookingId: booking.id,
+                reason: 'Cancelled by passenger'
+            });
+        } catch (err) {
+            console.error('Error triggering cancel notifications:', err);
+        }
+
         return booking;
     }
 
@@ -106,6 +185,42 @@ class BookingService {
             booking
         });
 
+        try {
+            const passenger = await prisma.user.findUnique({
+                where: { id: booking.passengerId },
+                select: { name: true, email: true }
+            });
+            const ride = await prisma.ride.findUnique({
+                where: { id: booking.rideId },
+                select: { pickupName: true, destinationName: true, departureTime: true }
+            });
+            const rideDetails = {
+                rideId: booking.rideId,
+                pickup: ride.pickupName,
+                destination: ride.destinationName,
+                date: ride.departureTime.toISOString()
+            };
+            const triggerService = (await import('./notification/notificationTriggerService.js')).default;
+            
+            // Notify passenger
+            await triggerService.notifyBookingAccepted({
+                userId: booking.passengerId,
+                userName: passenger.name,
+                userEmail: passenger.email,
+                rideDetails,
+                bookingId: booking.id
+            });
+
+            // Notify driver
+            await triggerService.notifyPassengerJoined({
+                userId: booking.driverId,
+                passengerName: passenger.name,
+                rideDetails
+            });
+        } catch (err) {
+            console.error('Error triggering accept booking notifications:', err);
+        }
+
         return booking;
     }
 
@@ -117,6 +232,35 @@ class BookingService {
             message: `Your booking request has been declined by the driver.`,
             booking
         });
+
+        try {
+            const passenger = await prisma.user.findUnique({
+                where: { id: booking.passengerId },
+                select: { name: true, email: true }
+            });
+            const ride = await prisma.ride.findUnique({
+                where: { id: booking.rideId },
+                select: { pickupName: true, destinationName: true, departureTime: true }
+            });
+            const rideDetails = {
+                rideId: booking.rideId,
+                pickup: ride.pickupName,
+                destination: ride.destinationName,
+                date: ride.departureTime.toISOString()
+            };
+            const triggerService = (await import('./notification/notificationTriggerService.js')).default;
+            
+            // Notify passenger
+            await triggerService.notifyBookingRejected({
+                userId: booking.passengerId,
+                userName: passenger.name,
+                userEmail: passenger.email,
+                rideDetails,
+                bookingId: booking.id
+            });
+        } catch (err) {
+            console.error('Error triggering reject booking notification:', err);
+        }
 
         return booking;
     }

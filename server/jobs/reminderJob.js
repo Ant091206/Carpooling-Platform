@@ -54,27 +54,24 @@ const startReminderJob = () => {
           };
 
           // Check if we already sent this reminder for this ride + window
-          const existingReminder = await prisma.notification.findFirst({
-            where: {
-              userId: ride.driverId,
-              category: 'REMINDER',
-              metadata: {
-                path: ['rideId'],
-                equals: ride.id
-              }
-            }
-          });
-
-          // Only check metadata for the specific minutes-before value
-          // Use a simple approach: check if a REMINDER notification with this rideId + minutesBefore exists
           const alreadySent = await prisma.notification.count({
             where: {
               userId: ride.driverId,
               category: 'REMINDER',
-              metadata: {
-                path: ['minutesBefore'],
-                equals: window.minutes
-              }
+              AND: [
+                {
+                  metadata: {
+                    path: ['rideId'],
+                    equals: ride.id
+                  }
+                },
+                {
+                  metadata: {
+                    path: ['minutesBefore'],
+                    equals: window.minutes
+                  }
+                }
+              ]
             }
           });
 
@@ -95,10 +92,20 @@ const startReminderJob = () => {
               where: {
                 userId: booking.passenger.id,
                 category: 'REMINDER',
-                metadata: {
-                  path: ['minutesBefore'],
-                  equals: window.minutes
-                }
+                AND: [
+                  {
+                    metadata: {
+                      path: ['rideId'],
+                      equals: ride.id
+                    }
+                  },
+                  {
+                    metadata: {
+                      path: ['minutesBefore'],
+                      equals: window.minutes
+                    }
+                  }
+                ]
               }
             });
 

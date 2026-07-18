@@ -1,35 +1,44 @@
+import api from './api.js';
+
 export const notificationService = {
-  getNotifications() {
-    const list = localStorage.getItem('notifications');
-    return list ? JSON.parse(list) : [];
+  async getNotifications(params) {
+    const response = await api.get('/notifications', { params });
+    return response.data.data;
   },
 
-  saveNotification(notification) {
-    const list = this.getNotifications();
-    // Wrap details
-    const newNotif = {
-      id: Date.now(),
-      timestamp: new Date().toISOString(),
-      read: false,
-      ...notification
-    };
-    const newList = [newNotif, ...list].slice(0, 50); // Keep last 50
-    localStorage.setItem('notifications', JSON.stringify(newList));
-    return newList;
+  async getUnreadCount() {
+    const response = await api.get('/notifications/unread-count');
+    return response.data.data;
   },
 
-  markAsRead(id) {
-    const list = this.getNotifications();
-    const newList = list.map((item) => 
-      item.id === id ? { ...item, read: true } : item
-    );
-    localStorage.setItem('notifications', JSON.stringify(newList));
-    return newList;
+  async markAsRead(id) {
+    const response = await api.patch(`/notifications/${id}/read`);
+    return response.data.data;
   },
 
-  clearAll() {
-    localStorage.removeItem('notifications');
-    return [];
+  async markAllAsRead() {
+    const response = await api.patch('/notifications/read-all');
+    return response.data.data;
+  },
+
+  async deleteNotification(id) {
+    const response = await api.delete(`/notifications/${id}`);
+    return response.data.data;
+  },
+
+  async deleteAllNotifications() {
+    const response = await api.delete('/notifications');
+    return response.data.data;
+  },
+
+  async getPreferences() {
+    const response = await api.get('/notification-preferences');
+    return response.data.data;
+  },
+
+  async updatePreferences(data) {
+    const response = await api.put('/notification-preferences', data);
+    return response.data.data;
   }
 };
 

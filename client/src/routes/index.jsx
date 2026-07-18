@@ -22,6 +22,8 @@ import ReviewsProfile from '../pages/ReviewsProfile.jsx';
 import Reports from '../pages/Reports.jsx';
 import Settings from '../pages/Settings.jsx';
 import NotFound from '../pages/NotFound.jsx';
+import Notifications from '../pages/Notifications.jsx';
+import NotificationSettings from '../pages/NotificationSettings.jsx';
 
 // Module 10 — Lazy-loaded Wallet & Payment pages
 const WalletDashboard = lazy(() => import('../pages/Wallet/WalletDashboard.jsx'));
@@ -96,6 +98,8 @@ export const appRoutes = [
       // Supporting pages
       { path: 'my-vehicle',      element: protect(MyVehicle) },
       { path: 'settings',        element: protect(Settings) },
+      { path: 'notifications',   element: protect(Notifications) },
+      { path: 'settings/notifications', element: protect(NotificationSettings) },
 
       { path: '*',               element: <NotFound /> },
     ],

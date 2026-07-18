@@ -215,6 +215,22 @@ const triggerService = {
     });
   },
 
+  // ─── Onboarding notifications ─────────────────────────────────────
+
+  async notifyWelcome({ userId, userName, userEmail }) {
+    return this._dispatch({
+      userId,
+      title: 'Welcome to EnterprisePool!',
+      message: `Hello ${userName}, your account was created successfully. Welcome to our carpooling platform!`,
+      type: 'SUCCESS',
+      category: 'PROFILE',
+      priority: 'MEDIUM',
+      actionUrl: '/dashboard',
+      emailTemplate: 'welcome',
+      emailData: { userName, recipient: userEmail }
+    });
+  },
+
   // ─── Profile notifications ────────────────────────────────────────
 
   async notifyProfileUpdated({ userId }) {

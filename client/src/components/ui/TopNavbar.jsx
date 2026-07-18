@@ -3,6 +3,8 @@ import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { Car, ChevronDown, LogOut, Menu, User, X } from 'lucide-react';
 import Button from './Button.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
+import NotificationBell from '../notifications/NotificationBell.jsx';
+import { useNotifications } from '../../context/NotificationContext.jsx';
 
 const appLinks = [
   ['Dashboard',  '/dashboard'],
@@ -17,6 +19,7 @@ const appLinks = [
 export default function TopNavbar({ publicMode = false }) {
   const [open, setOpen] = useState(false);
   const { user, isAuthenticated, logout } = useAuth();
+  const { unreadCount } = useNotifications();
   const navigate = useNavigate();
   const links = isAuthenticated && !publicMode ? appLinks : [['Benefits', '/#benefits'], ['How it works', '/#how-it-works']];
 
@@ -50,6 +53,7 @@ export default function TopNavbar({ publicMode = false }) {
         <div className="hidden items-center gap-3 lg:flex">
           {isAuthenticated && !publicMode ? (
             <>
+              <NotificationBell />
               <Link to="/profile-setup" className="flex items-center gap-2 rounded-full bg-white px-3 py-2 text-sm font-bold text-slate-700 shadow-sm">
                 <span className="grid h-8 w-8 place-items-center rounded-full bg-emerald-100 text-emerald-700">
                   <User className="h-4 w-4" />
@@ -81,7 +85,20 @@ export default function TopNavbar({ publicMode = false }) {
               </Link>
             ))}
             {isAuthenticated && !publicMode ? (
-              <button onClick={handleLogout} className="rounded-2xl bg-emerald-600 px-4 py-3 text-left text-sm font-bold text-white">Logout</button>
+              <>
+                <Link to="/notifications" onClick={() => setOpen(false)} className="rounded-2xl bg-white px-4 py-3 text-sm font-bold text-slate-700 flex justify-between items-center">
+                  <span>Notifications</span>
+                  {unreadCount > 0 && (
+                    <span className="bg-rose-500 text-white rounded-full px-2 py-0.5 text-xs font-bold">
+                      {unreadCount}
+                    </span>
+                  )}
+                </Link>
+                <Link to="/settings/notifications" onClick={() => setOpen(false)} className="rounded-2xl bg-white px-4 py-3 text-sm font-bold text-slate-700">
+                  Notification Settings
+                </Link>
+                <button onClick={handleLogout} className="rounded-2xl bg-emerald-600 px-4 py-3 text-left text-sm font-bold text-white">Logout</button>
+              </>
             ) : (
               <Link to="/login" onClick={() => setOpen(false)} className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white">Sign In</Link>
             )}
