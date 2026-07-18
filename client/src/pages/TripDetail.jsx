@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { MessageCircle, Phone, ShieldCheck, Play, CheckCircle, XCircle, Send, User } from 'lucide-react';
+import { MessageCircle, Phone, Mail, ShieldCheck, Play, CheckCircle, Navigation, Send, User, Car, Calendar, Clock, AlertTriangle } from 'lucide-react';
 import PageShell from '../components/shared/PageShell.jsx';
 import Card from '../components/ui/Card.jsx';
 import Badge from '../components/ui/Badge.jsx';
 import Button from '../components/ui/Button.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useSocket } from '../context/SocketContext.jsx';
-import rideService from '../services/ride.service.js';
+import tripService from '../services/trip.service.js';
 import toast from 'react-hot-toast';
 
 export default function TripDetail() {
@@ -15,38 +15,37 @@ export default function TripDetail() {
   const { user } = useAuth();
   const socket = useSocket();
 
-  const [ride, setRide] = useState(null);
+  const [trip, setTrip] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isDriver, setIsDriver] = useState(false);
-  const [chatOpen, setChatOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   
   const chatEndRef = useRef(null);
 
-  // Fetch ride details
-  const fetchRideDetails = async () => {
+  // Fetch trip details
+  const fetchTripDetails = async () => {
     try {
       setLoading(true);
-      const data = await rideService.getRideById(tripId);
-      setRide(data);
-      setIsDriver(data.driver_id === user?.id);
+      const data = await tripService.getTrip(tripId);
+      setTrip(data);
+      setIsDriver(data.driverId === user?.id);
     } catch (e) {
-      toast.error('Failed to load ride details.');
+      toast.error(e.response?.data?.message || 'Failed to load trip details.');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchRideDetails();
+    fetchTripDetails();
   }, [tripId, user]);
 
   // Handle socket connections and join chat room
   useEffect(() => {
-    if (socket && ride) {
-      // Join chat room
-      socket.emit('join_ride_chat', ride.id);
+    if (socket && trip) {
+      // Join chat room based on rideId so all passengers in the ride share the room
+      socket.emit('join_ride_chat', trip.rideId);
       
       const handleNewMessage = (msg) => {
         setMessages((prev) => [...prev, msg]);
@@ -58,20 +57,20 @@ export default function TripDetail() {
         socket.off('new_message', handleNewMessage);
       };
     }
-  }, [socket, ride]);
+  }, [socket, trip]);
 
   // Scroll to bottom of chat
   useEffect(() => {
     if (chatEndRef.current) {
       chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages, chatOpen]);
+  }, [messages]);
 
   const handleSendMessage = () => {
-    if (!inputText.trim() || !socket || !ride) return;
+    if (!inputText.trim() || !socket || !trip) return;
 
     const messagePayload = {
-      rideId: ride.id,
+      rideId: trip.rideId,
       senderId: user.id,
       senderName: user.name,
       text: inputText.trim(),
@@ -83,33 +82,33 @@ export default function TripDetail() {
   };
 
   // Driver action triggers
-  const handleStartRide = async () => {
+  const handleStartTrip = async () => {
     try {
-      const updated = await rideService.startRide(ride.id);
-      setRide(updated);
-      toast.success('Commute started! Passengers notified.');
+      const updated = await tripService.startTrip(trip.id);
+      setTrip(prev => ({ ...prev, status: updated.status, startedAt: updated.startedAt }));
+      toast.success('Trip started! Passenger has been notified.');
     } catch (e) {
-      toast.error(e.response?.data?.message || 'Failed to start ride.');
+      toast.error(e.response?.data?.message || 'Failed to start trip.');
     }
   };
 
-  const handleCompleteRide = async () => {
+  const handleUpdateProgress = async () => {
     try {
-      const updated = await rideService.completeRide(ride.id);
-      setRide(updated);
-      toast.success('Commute completed! Thank you for pooling green.');
+      const updated = await tripService.updateTripProgress(trip.id);
+      setTrip(prev => ({ ...prev, status: updated.status }));
+      toast.success('Trip progress updated to IN PROGRESS!');
     } catch (e) {
-      toast.error(e.response?.data?.message || 'Failed to complete ride.');
+      toast.error(e.response?.data?.message || 'Failed to update progress.');
     }
   };
 
-  const handleCancelRide = async () => {
+  const handleCompleteTrip = async () => {
     try {
-      const updated = await rideService.cancelRide(ride.id);
-      setRide(updated);
-      toast.error('Commute cancelled.');
+      const updated = await tripService.completeTrip(trip.id);
+      setTrip(prev => ({ ...prev, status: updated.status, completedAt: updated.completedAt }));
+      toast.success('Trip completed! Thank you for sharing your ride.');
     } catch (e) {
-      toast.error(e.response?.data?.message || 'Failed to cancel ride.');
+      toast.error(e.response?.data?.message || 'Failed to complete trip.');
     }
   };
 
@@ -121,7 +120,7 @@ export default function TripDetail() {
     );
   }
 
-  if (!ride) {
+  if (!trip) {
     return (
       <PageShell title="Trip Not Found" description="The requested trip could not be resolved.">
         <Card className="p-8 text-center text-slate-500">
@@ -134,52 +133,147 @@ export default function TripDetail() {
     );
   }
 
-  const steps = ['Scheduled', 'Started', 'Completed'];
-  const currentStepIndex = steps.indexOf(ride.ride_status);
+  // Define steps matching BOOKED -> ACCEPTED -> STARTED -> IN_PROGRESS -> COMPLETED
+  const steps = ['BOOKED', 'ACCEPTED', 'STARTED', 'IN_PROGRESS', 'COMPLETED'];
+  // Since Trip record is created when accepted, if status is BOOKED or ACCEPTED, we set appropriate index
+  const currentStepIndex = steps.indexOf(trip.status);
 
   return (
     <PageShell 
       eyebrow="Trip detail" 
-      title={`${ride.pickup_name} to ${ride.destination_name}`} 
-      description={new Date(ride.departure_time).toLocaleString()}
+      title={`${trip.ride.pickupName} to ${trip.ride.destinationName}`} 
+      description={new Date(trip.ride.departureTime).toLocaleString()}
       action={<Link to="/my-trips" className="font-bold text-emerald-700 hover:underline">Back to trips</Link>}
     >
       <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="space-y-6">
-          <Card className="p-6 bg-white space-y-5">
-            <div className="h-72 rounded-[2rem] bg-[#EAF6EF] p-5 relative overflow-hidden flex items-center justify-center border border-emerald-100">
-              <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#047857_1px,transparent_1px)] [background-size:16px_16px]" />
-              <div className="relative w-full h-full rounded-2xl border-2 border-dashed border-emerald-300 bg-white/70 p-6 flex flex-col justify-between items-center shadow-sm">
-                <span className="font-extrabold text-emerald-700 bg-emerald-50 px-4 py-1.5 rounded-full border border-emerald-200 text-sm">
-                  Active Ride Route Trace
-                </span>
-                <div className="w-full border-t-2 border-dashed border-emerald-400" />
-                <div className="flex w-full justify-between items-center text-sm font-bold text-emerald-800">
-                  <span>Distance: {ride.est_distance || 'Calculating...'}</span>
-                  <span>Duration: {ride.est_duration || 'Calculating...'}</span>
+          {/* Card containing Ride, Driver, Passenger and Vehicle details */}
+          <Card className="p-6 bg-white space-y-6">
+            <div>
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                <h3 className="font-heading text-lg font-bold text-slate-900">Ride Details</h3>
+                <div className="flex gap-2">
+                  <Badge variant={trip.status === 'CANCELLED' ? 'danger' : 'success'}>
+                    Trip: {trip.status}
+                  </Badge>
+                  <Badge variant={trip.booking.status === 'CANCELLED' ? 'danger' : 'warning'}>
+                    Booking: {trip.booking.status}
+                  </Badge>
                 </div>
+              </div>
+
+              {/* Ride Details Block */}
+              <div className="grid gap-4 sm:grid-cols-2 bg-slate-50 p-4 rounded-3xl mb-4 border border-slate-100">
+                <div className="flex items-center gap-3">
+                  <Calendar className="h-5 w-5 text-emerald-700 shrink-0" />
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Departure Date</span>
+                    <span className="text-sm font-bold text-slate-800">{new Date(trip.ride.departureTime).toLocaleDateString()}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Clock className="h-5 w-5 text-emerald-700 shrink-0" />
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Departure Time</span>
+                    <span className="text-sm font-bold text-slate-800">
+                      {new Date(trip.ride.departureTime).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Users className="h-5 w-5 text-emerald-700 shrink-0" />
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Seats Booked</span>
+                    <span className="text-sm font-bold text-slate-800">{trip.booking.requestedSeats} Seat(s)</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <ShieldCheck className="h-5 w-5 text-emerald-700 shrink-0" />
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Total Paid Fare</span>
+                    <span className="text-sm font-bold text-emerald-800">
+                      INR {(parseFloat(trip.ride.farePerSeat) * trip.booking.requestedSeats).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* User Roles details (Driver & Passenger) */}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="border border-slate-100 p-4 rounded-3xl space-y-2">
+                  <p className="text-[10px] text-emerald-700 font-bold uppercase tracking-wider">Driver Information</p>
+                  <p className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <User className="h-4 w-4 text-slate-400" /> {trip.driver.name}
+                  </p>
+                  <p className="text-xs text-slate-500 flex items-center gap-2">
+                    <Mail className="h-3.5 w-3.5 text-slate-400" /> {trip.driver.email}
+                  </p>
+                  {trip.driver.phone && (
+                    <p className="text-xs text-slate-500 flex items-center gap-2">
+                      <Phone className="h-3.5 w-3.5 text-slate-400" /> {trip.driver.phone}
+                    </p>
+                  )}
+                </div>
+
+                <div className="border border-slate-100 p-4 rounded-3xl space-y-2">
+                  <p className="text-[10px] text-emerald-700 font-bold uppercase tracking-wider">Passenger Information</p>
+                  <p className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <User className="h-4 w-4 text-slate-400" /> {trip.passenger.name}
+                  </p>
+                  <p className="text-xs text-slate-500 flex items-center gap-2">
+                    <Mail className="h-3.5 w-3.5 text-slate-400" /> {trip.passenger.email}
+                  </p>
+                  {trip.passenger.phone && (
+                    <p className="text-xs text-slate-500 flex items-center gap-2">
+                      <Phone className="h-3.5 w-3.5 text-slate-400" /> {trip.passenger.phone}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Vehicle Information */}
+              <div className="mt-4 border border-slate-100 p-4 rounded-3xl space-y-2 bg-emerald-50/20">
+                <p className="text-[10px] text-emerald-800 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                  <Car className="h-4 w-4" /> Vehicle Information
+                </p>
+                {trip.vehicle ? (
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    <div>
+                      <span className="text-slate-400 block font-bold">Model</span>
+                      <span className="font-bold text-slate-800">{trip.vehicle.model}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block font-bold">Plate Number</span>
+                      <span className="font-bold text-slate-800">{trip.vehicle.plateNumber}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block font-bold">Color</span>
+                      <span className="font-bold text-slate-800">{trip.vehicle.color}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-500 italic">No specific vehicle vehicle information registered.</p>
+                )}
               </div>
             </div>
             
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Info title="Commuter Role" value={isDriver ? 'Driver' : 'Passenger'} />
-              <Info title="Vehicle Mode" value={ride.vehicle_model || 'Shared Car'} />
-              <Info title="Plate Number" value={ride.vehicle_plate_number || 'N/A'} />
-              <Info title="Fare per Seat" value={`INR ${ride.fare_per_seat}`} />
-            </div>
-            
             {/* Driver Controls */}
-            {isDriver && ride.ride_status !== 'Completed' && ride.ride_status !== 'Cancelled' && (
+            {isDriver && trip.status !== 'COMPLETED' && trip.status !== 'CANCELLED' && (
               <Card className="p-4 bg-emerald-50 border border-emerald-100 rounded-3xl space-y-3">
                 <p className="font-bold text-slate-800 text-sm">Driver Commute Actions:</p>
                 <div className="flex flex-wrap gap-3">
-                  {ride.ride_status === 'Scheduled' && (
-                    <Button onClick={handleStartRide} icon={Play}>Start Ride</Button>
+                  {trip.status === 'ACCEPTED' && (
+                    <Button onClick={handleStartTrip} icon={Play}>Start Trip</Button>
                   )}
-                  {ride.ride_status === 'Started' && (
-                    <Button onClick={handleCompleteRide} icon={CheckCircle}>Complete Ride</Button>
+                  {trip.status === 'STARTED' && (
+                    <>
+                      <Button onClick={handleUpdateProgress} variant="secondary" icon={Navigation}>Set In Progress</Button>
+                      <Button onClick={handleCompleteTrip} icon={CheckCircle}>Complete Trip</Button>
+                    </>
                   )}
-                  <Button onClick={handleCancelRide} variant="danger" icon={XCircle}>Cancel Ride</Button>
+                  {trip.status === 'IN_PROGRESS' && (
+                    <Button onClick={handleCompleteTrip} icon={CheckCircle}>Complete Trip</Button>
+                  )}
                 </div>
               </Card>
             )}
@@ -191,7 +285,7 @@ export default function TripDetail() {
               <h3 className="font-heading text-xl font-extrabold text-slate-950 flex items-center gap-2">
                 <MessageCircle className="h-5 w-5 text-emerald-700" /> Trip Chat Room
               </h3>
-              <Badge variant={chatOpen ? 'success' : 'secondary'}>Live Connected</Badge>
+              <Badge variant="success">Live Connected</Badge>
             </div>
 
             <div className="h-64 rounded-2xl border border-slate-100 p-4 overflow-y-auto bg-slate-50 flex flex-col gap-3">
@@ -232,30 +326,48 @@ export default function TripDetail() {
           </Card>
         </div>
 
+        {/* Timeline column */}
         <div className="space-y-6">
           <Card className="p-6 bg-white space-y-6">
-            <div className="flex items-center justify-between">
-              <Badge variant={ride.ride_status === 'Completed' ? 'success' : 'warning'}>
-                {ride.ride_status}
-              </Badge>
-              <Button variant="secondary" icon={Phone}>Contact Driver</Button>
-            </div>
-            
-            <div className="space-y-4">
-              {steps.map((step, index) => (
-                <div key={step} className="flex gap-3">
-                  <span className={`mt-1.5 h-3.5 w-3.5 rounded-full shrink-0 ${currentStepIndex >= index ? 'bg-emerald-600 ring-4 ring-emerald-100' : 'bg-emerald-100'}`} />
-                  <div>
-                    <p className="font-bold text-slate-900 text-sm">{step}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      {index === 0 && 'Ride scheduled on platform.'}
-                      {index === 1 && 'Driver has started GPS tracking.'}
-                      {index === 2 && 'Trip finished successfully.'}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <h3 className="font-heading text-lg font-bold text-slate-900">Trip Timeline</h3>
+
+            {trip.status === 'CANCELLED' ? (
+              <div className="rounded-2xl bg-red-50 border border-red-100 p-4 text-xs font-bold text-red-800 flex gap-2">
+                <AlertTriangle className="h-4 w-4 text-red-700 shrink-0" />
+                <span>This trip has been cancelled and cannot be modified.</span>
+              </div>
+            ) : (
+              <div className="space-y-6 relative before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100">
+                {steps.map((step, index) => {
+                  const isCompletedStep = currentStepIndex >= index;
+                  return (
+                    <div key={step} className="flex gap-4 relative">
+                      <span className={`h-4.5 w-4.5 rounded-full shrink-0 border-2 z-10 flex items-center justify-center transition-all ${
+                        isCompletedStep 
+                          ? 'bg-emerald-600 border-emerald-600 ring-4 ring-emerald-50' 
+                          : 'bg-white border-slate-200'
+                      }`}>
+                        {isCompletedStep && (
+                          <span className="w-1.5 h-1.5 bg-white rounded-full" />
+                        )}
+                      </span>
+                      <div>
+                        <p className={`font-bold text-sm transition-all ${isCompletedStep ? 'text-emerald-800' : 'text-slate-400'}`}>
+                          {step}
+                        </p>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          {step === 'BOOKED' && 'Passenger booking request submitted.'}
+                          {step === 'ACCEPTED' && 'Booking accepted by driver.'}
+                          {step === 'STARTED' && (trip.startedAt ? `Trip started at ${new Date(trip.startedAt).toLocaleTimeString()}` : 'Driver has started the trip.')}
+                          {step === 'IN_PROGRESS' && 'Trip is currently in progress.'}
+                          {step === 'COMPLETED' && (trip.completedAt ? `Trip completed at ${new Date(trip.completedAt).toLocaleTimeString()}` : 'Trip completed successfully.')}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
             
             <div className="rounded-2xl bg-emerald-50 p-4 text-xs font-bold text-emerald-800 flex gap-2">
               <ShieldCheck className="h-4 w-4 text-emerald-700 shrink-0" />
@@ -268,11 +380,3 @@ export default function TripDetail() {
   );
 }
 
-function Info({ title, value }) {
-  return (
-    <div className="rounded-2xl border border-emerald-100 p-4">
-      <p className="text-xs font-bold uppercase text-emerald-700 tracking-wider">{title}</p>
-      <p className="mt-1 font-bold text-slate-950 truncate">{value}</p>
-    </div>
-  );
-}

@@ -13,6 +13,9 @@ import rideRoutes from './routes/rideRoutes.js';
 import bookingRoutes from './routes/bookingRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
+import tripRoutes from './routes/tripRoutes.js';
+import tripController from './controllers/tripController.js';
+import authMiddleware from './middleware/authMiddleware.js';
 import errorHandler from './middleware/errorHandler.js';
 import logger from './utils/logger.js';
 import ApiError from './utils/ApiError.js';
@@ -64,6 +67,8 @@ app.use('/rides', rideRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/trips', tripRoutes);
+app.get('/api/driver/trips', authMiddleware, tripController.getDriverTrips);
 
 // Swagger setup
 const swaggerOptions = {

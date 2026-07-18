@@ -104,6 +104,17 @@ class BookingRepository {
                 },
             });
 
+            // Update corresponding Trip status to CANCELLED if it exists
+            const trip = await tx.trip.findUnique({
+                where: { bookingId: bookingId }
+            });
+            if (trip) {
+                await tx.trip.update({
+                    where: { bookingId: bookingId },
+                    data: { status: 'CANCELLED' }
+                });
+            }
+
             // Restore seats
             await tx.ride.update({
                 where: { id: booking.rideId },
@@ -144,7 +155,7 @@ class BookingRepository {
                 throw err;
             }
 
-            return await tx.booking.update({
+            const updatedBooking = await tx.booking.update({
                 where: { id: bookingId },
                 data: { status: 'ACCEPTED' },
                 include: {
@@ -159,6 +170,19 @@ class BookingRepository {
                     passenger: { select: { id: true, name: true, email: true } },
                 },
             });
+
+            // Create corresponding Trip record atomically
+            await tx.trip.create({
+                data: {
+                    rideId: updatedBooking.rideId,
+                    bookingId: updatedBooking.id,
+                    driverId: driverId,
+                    passengerId: updatedBooking.passengerId,
+                    status: 'ACCEPTED',
+                }
+            });
+
+            return updatedBooking;
         });
     }
 

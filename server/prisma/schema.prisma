@@ -68,6 +68,8 @@ model User {
   rides             Ride[]
   passengerBookings Booking[]      @relation("PassengerBookings")
   driverBookings    Booking[]      @relation("DriverBookings")
+  passengerTrips    Trip[]         @relation("PassengerTrips")
+  driverTrips       Trip[]         @relation("DriverTrips")
 
   @@unique([organizationId, employeeId], name: "idx_user_org_emp")
   @@index([role], map: "idx_user_role")
@@ -146,6 +148,7 @@ model Ride {
   driver              User         @relation(fields: [driverId], references: [id], onDelete: Cascade)
   vehicle             Vehicle      @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
   bookings            Booking[]
+  trips               Trip[]
 
   @@index([driverId], map: "idx_rides_driver_id")
   @@index([departureTime], map: "idx_rides_departure_time")
@@ -180,12 +183,46 @@ model Booking {
   createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt      DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
 
-  ride      Ride @relation(fields: [rideId], references: [id], onDelete: Cascade)
-  passenger User @relation("PassengerBookings", fields: [passengerId], references: [id], onDelete: Cascade)
-  driver    User @relation("DriverBookings", fields: [driverId], references: [id], onDelete: Cascade)
+  ride      Ride    @relation(fields: [rideId], references: [id], onDelete: Cascade)
+  passenger User    @relation("PassengerBookings", fields: [passengerId], references: [id], onDelete: Cascade)
+  driver    User    @relation("DriverBookings", fields: [driverId], references: [id], onDelete: Cascade)
+  trip      Trip?
 
   @@index([rideId], map: "idx_booking_ride_id")
   @@index([passengerId], map: "idx_booking_passenger_id")
   @@index([driverId], map: "idx_booking_driver_id")
   @@map("bookings")
+}
+
+enum TripStatus {
+  BOOKED
+  ACCEPTED
+  STARTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model Trip {
+  id          Int        @id @default(autoincrement()) @db.UnsignedInt
+  rideId      Int        @map("ride_id") @db.UnsignedInt
+  bookingId   Int        @unique @map("booking_id") @db.UnsignedInt
+  driverId    Int        @map("driver_id") @db.UnsignedInt
+  passengerId Int        @map("passenger_id") @db.UnsignedInt
+  status      TripStatus @default(BOOKED)
+  startedAt   DateTime?  @map("started_at") @db.Timestamp(0)
+  completedAt DateTime?  @map("completed_at") @db.Timestamp(0)
+  createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt   DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  ride      Ride    @relation(fields: [rideId], references: [id], onDelete: Cascade)
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  driver    User    @relation("DriverTrips", fields: [driverId], references: [id], onDelete: Cascade)
+  passenger User    @relation("PassengerTrips", fields: [passengerId], references: [id], onDelete: Cascade)
+
+  @@index([rideId], map: "idx_trip_ride_id")
+  @@index([bookingId], map: "idx_trip_booking_id")
+  @@index([driverId], map: "idx_trip_driver_id")
+  @@index([passengerId], map: "idx_trip_passenger_id")
+  @@map("trips")
 }
