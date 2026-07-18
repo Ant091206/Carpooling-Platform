@@ -1,0 +1,134 @@
+{
+	"info": {
+		"_postman_id": "8a3d1c4b-7521-4f7d-8157-2e11a3d9029a",
+		"name": "Odoo Ride Publishing",
+		"description": "API collection for the Enterprise Ride Publishing Module (Module 5)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Publish Ride",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"vehicle_id\": 1,\n    \"pickup_name\": \"Central Station\",\n    \"pickup_lng\": 72.8777,\n    \"pickup_lat\": 19.0760,\n    \"destination_name\": \"Tech Park\",\n    \"dest_lng\": 73.8567,\n    \"dest_lat\": 18.5204,\n    \"departure_time\": \"2026-10-15T09:00:00Z\",\n    \"available_seats\": 3,\n    \"fare_per_seat\": 150,\n    \"is_recurring\": false,\n    \"notes\": \"No smoking please\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:3000/rides",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "3000",
+					"path": ["rides"]
+				}
+			}
+		},
+		{
+			"name": "Get My Published Rides",
+			"request": {
+				"method": "GET",
+				"url": {
+					"raw": "http://localhost:3000/rides/my",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "3000",
+					"path": ["rides", "my"]
+				}
+			}
+		},
+		{
+			"name": "Get Ride By ID",
+			"request": {
+				"method": "GET",
+				"url": {
+					"raw": "http://localhost:3000/rides/1",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "3000",
+					"path": ["rides", "1"]
+				}
+			}
+		},
+		{
+			"name": "Update Scheduled Ride",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"departure_time\": \"2026-10-16T10:00:00Z\",\n    \"available_seats\": 2,\n    \"fare_per_seat\": 200\n}"
+				},
+				"url": {
+					"raw": "http://localhost:3000/rides/1",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "3000",
+					"path": ["rides", "1"]
+				}
+			}
+		},
+		{
+			"name": "Delete Scheduled Ride",
+			"request": {
+				"method": "DELETE",
+				"url": {
+					"raw": "http://localhost:3000/rides/1",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "3000",
+					"path": ["rides", "1"]
+				}
+			}
+		},
+		{
+			"name": "Start Ride",
+			"request": {
+				"method": "PATCH",
+				"url": {
+					"raw": "http://localhost:3000/rides/1/start",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "3000",
+					"path": ["rides", "1", "start"]
+				}
+			}
+		},
+		{
+			"name": "Complete Ride",
+			"request": {
+				"method": "PATCH",
+				"url": {
+					"raw": "http://localhost:3000/rides/1/complete",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "3000",
+					"path": ["rides", "1", "complete"]
+				}
+			}
+		},
+		{
+			"name": "Cancel Ride",
+			"request": {
+				"method": "PATCH",
+				"url": {
+					"raw": "http://localhost:3000/rides/1/cancel",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "3000",
+					"path": ["rides", "1", "cancel"]
+				}
+			}
+		}
+	]
+}

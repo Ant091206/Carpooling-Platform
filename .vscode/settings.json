@@ -18,6 +18,7 @@
   },
   "eslint.workingDirectories": [
     "./server",
-    "./client"
+    "./client",
+    "./backend"
   ]
 }
