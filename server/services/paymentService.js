@@ -86,6 +86,7 @@ class PaymentService {
     });
 
     const updated = await paymentRepository.markSuccess(payment.id);
+    await this._notifySuccess(updated);
 
     return {
       payment:     updated,
@@ -97,6 +98,7 @@ class PaymentService {
 
   async _processCash(payment) {
     const updated = await paymentRepository.markSuccess(payment.id);
+    await this._notifySuccess(updated);
     return {
       payment:  updated,
       method:   'CASH',
@@ -111,6 +113,7 @@ class PaymentService {
     const updated = await paymentRepository.markSuccess(payment.id, {
       gatewayPaymentId: `UPI-DEMO-${Date.now()}`,
     });
+    await this._notifySuccess(updated);
 
     return {
       payment:  updated,
@@ -131,6 +134,7 @@ class PaymentService {
         gatewayOrderId:   `order_sandbox_${Date.now()}`,
         gatewayPaymentId: `pay_sandbox_${Date.now()}`,
       });
+      await this._notifySuccess(updated);
       return {
         payment:       updated,
         method:        'RAZORPAY',
@@ -167,6 +171,12 @@ class PaymentService {
       };
     } catch (err) {
       await paymentRepository.markFailed(payment.id);
+      try {
+        const failedPayment = await paymentRepository.findById(payment.id);
+        await this._notifyFailure(failedPayment || payment);
+      } catch (e) {
+        console.error(e);
+      }
       throw new ApiError(502, `Razorpay gateway error: ${err.message}`);
     }
   }
@@ -184,14 +194,17 @@ class PaymentService {
 
     if (expected !== razorpay_signature) {
       await paymentRepository.markFailed(paymentId);
+      await this._notifyFailure(payment);
       throw new ApiError(400, 'Razorpay signature verification failed. Payment marked as FAILED.');
     }
 
-    return await paymentRepository.markSuccess(paymentId, {
+    const updated = await paymentRepository.markSuccess(paymentId, {
       gatewayOrderId:   razorpay_order_id,
       gatewayPaymentId: razorpay_payment_id,
       gatewaySignature: razorpay_signature,
     });
+    await this._notifySuccess(updated);
+    return updated;
   }
 
   async refundPayment(paymentId, requestingUserId) {
@@ -237,6 +250,50 @@ class PaymentService {
 
   async getPaymentHistory(userId, pagination) {
     return await paymentRepository.findAllByPayer(userId, pagination);
+  }
+
+  async _notifySuccess(payment) {
+    try {
+      const payer = await prisma.user.findUnique({
+        where: { id: payment.payerId },
+        select: { name: true, email: true }
+      });
+      const paymentDetails = {
+        paymentId: payment.id,
+        amount: parseFloat(payment.amount)
+      };
+      const triggerService = (await import('./notification/notificationTriggerService.js')).default;
+      await triggerService.notifyPaymentSuccess({
+        userId: payment.payerId,
+        userName: payer.name,
+        userEmail: payer.email,
+        paymentDetails
+      });
+    } catch (err) {
+      console.error('Error triggering payment success notification:', err);
+    }
+  }
+
+  async _notifyFailure(payment) {
+    try {
+      const payer = await prisma.user.findUnique({
+        where: { id: payment.payerId },
+        select: { name: true, email: true }
+      });
+      const paymentDetails = {
+        paymentId: payment.id,
+        amount: parseFloat(payment.amount)
+      };
+      const triggerService = (await import('./notification/notificationTriggerService.js')).default;
+      await triggerService.notifyPaymentFailed({
+        userId: payment.payerId,
+        userName: payer.name,
+        userEmail: payer.email,
+        paymentDetails
+      });
+    } catch (err) {
+      console.error('Error triggering payment failure notification:', err);
+    }
   }
 }
 

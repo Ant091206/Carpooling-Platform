@@ -4,6 +4,10 @@ import { Car, ChevronDown, LogOut, Menu, User, X, Activity } from 'lucide-react'
 import Button from './Button.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import NotificationBell from '../notifications/NotificationBell.jsx';
+<<<<<<< HEAD
+=======
+import { useNotifications } from '../../context/NotificationContext.jsx';
+>>>>>>> 7a57a61ce29369380aa6e4b39459103a5ff866b9
 
 const baseAppLinks = [
   ['Dashboard',  '/dashboard'],
@@ -18,6 +22,7 @@ const baseAppLinks = [
 export default function TopNavbar({ publicMode = false }) {
   const [open, setOpen] = useState(false);
   const { user, isAuthenticated, logout } = useAuth();
+  const { unreadCount } = useNotifications();
   const navigate = useNavigate();
 
   const appLinks = user?.role === 'ADMIN'
@@ -88,7 +93,20 @@ export default function TopNavbar({ publicMode = false }) {
               </Link>
             ))}
             {isAuthenticated && !publicMode ? (
-              <button onClick={handleLogout} className="rounded-2xl bg-emerald-600 px-4 py-3 text-left text-sm font-bold text-white">Logout</button>
+              <>
+                <Link to="/notifications" onClick={() => setOpen(false)} className="rounded-2xl bg-white px-4 py-3 text-sm font-bold text-slate-700 flex justify-between items-center">
+                  <span>Notifications</span>
+                  {unreadCount > 0 && (
+                    <span className="bg-rose-500 text-white rounded-full px-2 py-0.5 text-xs font-bold">
+                      {unreadCount}
+                    </span>
+                  )}
+                </Link>
+                <Link to="/settings/notifications" onClick={() => setOpen(false)} className="rounded-2xl bg-white px-4 py-3 text-sm font-bold text-slate-700">
+                  Notification Settings
+                </Link>
+                <button onClick={handleLogout} className="rounded-2xl bg-emerald-600 px-4 py-3 text-left text-sm font-bold text-white">Logout</button>
+              </>
             ) : (
               <Link to="/login" onClick={() => setOpen(false)} className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white">Sign In</Link>
             )}

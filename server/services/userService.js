@@ -33,6 +33,13 @@ class UserService {
       designation: profileData.designation
     });
 
+    try {
+      const triggerService = (await import('./notification/notificationTriggerService.js')).default;
+      await triggerService.notifyProfileUpdated({ userId });
+    } catch (err) {
+      console.error('Error triggering profile update notification:', err);
+    }
+
     return await User.findById(userId);
   }
 

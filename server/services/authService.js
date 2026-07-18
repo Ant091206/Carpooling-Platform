@@ -40,6 +40,27 @@ class AuthService {
 
     // 5. Fetch and return created user (excluding password)
     const userProfile = await User.findById(userId);
+
+    // Initialize preferences and trigger welcome notification
+    try {
+      const prisma = (await import('../config/db.js')).default;
+      const triggerService = (await import('./notification/notificationTriggerService.js')).default;
+
+      await prisma.notificationPreference.upsert({
+        where: { userId },
+        update: {},
+        create: { userId }
+      });
+
+      await triggerService.notifyWelcome({
+        userId,
+        userName: userProfile.name,
+        userEmail: userProfile.email
+      });
+    } catch (err) {
+      console.error('Error in authService notification registration:', err);
+    }
+
     return userProfile;
   }
 

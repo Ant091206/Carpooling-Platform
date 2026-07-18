@@ -101,6 +101,39 @@ class RideService {
         if (ride.ride_status === 'In Progress' || ride.ride_status === 'Started') {
              throw new ApiError(400, 'Cannot delete a ride that has already started.');
         }
+
+        // Fetch passengers to notify before deleting
+        try {
+            const bookings = await prisma.booking.findMany({
+                where: { rideId: parseInt(id, 10), status: { in: ['ACCEPTED', 'PENDING'] } },
+                select: { passengerId: true }
+            });
+
+            const triggerService = (await import('./notification/notificationTriggerService.js')).default;
+            const rideDetails = {
+                rideId: ride.id,
+                pickup: ride.pickup_name,
+                destination: ride.destination_name,
+                date: ride.departure_time.toISOString()
+            };
+
+            for (const booking of bookings) {
+                const passenger = await prisma.user.findUnique({
+                    where: { id: booking.passengerId },
+                    select: { name: true, email: true }
+                });
+                await triggerService.notifyRideCancelled({
+                    userId: booking.passengerId,
+                    userName: passenger.name,
+                    userEmail: passenger.email,
+                    rideDetails,
+                    reason: 'Ride deleted by driver'
+                });
+            }
+        } catch (err) {
+            console.error('Error triggering deleteRide notifications:', err);
+        }
+
         await rideRepository.delete(id, driver_id);
         return true;
     }
@@ -137,6 +170,46 @@ class RideService {
                 message: `The ride from ${ride.pickupName} to ${ride.destinationName} has been ${status.toLowerCase()}!`,
                 ride: updatedRide
             });
+        }
+
+        // Module 12 Notifications
+        try {
+            const triggerService = (await import('./notification/notificationTriggerService.js')).default;
+            const rideDetails = {
+                rideId: updatedRide.id,
+                pickup: updatedRide.pickupName,
+                destination: updatedRide.destinationName,
+                date: updatedRide.departureTime.toISOString()
+            };
+
+            for (const booking of bookings) {
+                const passenger = await prisma.user.findUnique({
+                    where: { id: booking.passengerId },
+                    select: { name: true, email: true }
+                });
+
+                if (status === 'Started') {
+                    await triggerService.notifyRideStarted({
+                        userId: booking.passengerId,
+                        rideDetails
+                    });
+                } else if (status === 'Completed') {
+                    await triggerService.notifyRideCompleted({
+                        userId: booking.passengerId,
+                        rideDetails
+                    });
+                } else if (status === 'Cancelled') {
+                    await triggerService.notifyRideCancelled({
+                        userId: booking.passengerId,
+                        userName: passenger.name,
+                        userEmail: passenger.email,
+                        rideDetails,
+                        reason: 'Cancelled by driver'
+                    });
+                }
+            }
+        } catch (err) {
+            console.error('Error triggering ride status notifications:', err);
         }
 
         return updatedRide;

@@ -13,16 +13,21 @@ import rideRoutes from './routes/rideRoutes.js';
 import bookingRoutes from './routes/bookingRoutes.js';
 import walletRoutes from './routes/walletRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
-import adminRoutes from './routes/adminRoutes.js';
+import adminRoutes from './routes/admin/adminRoutes.js';
 import tripRoutes from './routes/tripRoutes.js';
 import tripController from './controllers/tripController.js';
 import authMiddleware from './middleware/authMiddleware.js';
 import historyRoutes from './routes/history/historyRoutes.js';
 import reviewRoutes from './routes/review/reviewRoutes.js';
 import notificationRoutes from './routes/notification/notificationRoutes.js';
+<<<<<<< HEAD
 import compression from 'compression';
 import systemRoutes from './routes/system/systemRoutes.js';
 import { apiLimiter, authLimiter, checkMaintenanceMode, sanitizeInput } from './middleware/securityMiddleware.js';
+=======
+import reportsRoutes from './routes/reports/reportsRoutes.js';
+import analyticsRoutes from './routes/analytics/analyticsRoutes.js';
+>>>>>>> 7a57a61ce29369380aa6e4b39459103a5ff866b9
 import errorHandler from './middleware/errorHandler.js';
 import logger from './utils/logger.js';
 import ApiError from './utils/ApiError.js';
@@ -88,7 +93,12 @@ app.use('/api/history', historyRoutes);
 app.use('/api/review', reviewRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/notification-preferences', notificationRoutes);
+<<<<<<< HEAD
 app.use('/api', systemRoutes);
+=======
+app.use('/api/reports', reportsRoutes);
+app.use('/api/analytics', analyticsRoutes);
+>>>>>>> 7a57a61ce29369380aa6e4b39459103a5ff866b9
 
 // Swagger setup
 const swaggerOptions = {

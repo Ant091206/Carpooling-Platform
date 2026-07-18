@@ -79,7 +79,12 @@ model User {
   notifications            Notification[]
   notificationPreference   NotificationPreference?
   emailQueue               EmailQueue[]
+<<<<<<< HEAD
   systemLogs               SystemLog[]
+=======
+  adminActivities          AdminActivity[]        @relation("AdminActivities")
+  reports                  Report[]               @relation("UserReports")
+>>>>>>> 7a57a61ce29369380aa6e4b39459103a5ff866b9
 
   @@unique([organizationId, employeeId], name: "idx_user_org_emp")
   @@index([role], map: "idx_user_role")
@@ -442,6 +447,7 @@ model EmailQueue {
   @@map("email_queue")
 }
 
+<<<<<<< HEAD
 // ─── Module 15: Production Optimization, DevOps Readiness & System Logging ────
 
 enum LogLevel {
@@ -491,3 +497,78 @@ model SystemSetting {
   @@map("system_settings")
 }
 
+=======
+// ─── Module 13: Enterprise Admin Dashboard ───────────────────────────────────────
+
+model AdminActivity {
+  id          Int      @id @default(autoincrement()) @db.UnsignedInt
+  adminId     Int?     @map("admin_id") @db.UnsignedInt
+  action      String   @db.VarChar(100)
+  module      String   @db.VarChar(100)
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+
+  admin       User?    @relation("AdminActivities", fields: [adminId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([adminId], map: "idx_admin_activity_admin_id")
+  @@index([action], map: "idx_admin_activity_action")
+  @@index([module], map: "idx_admin_activity_module")
+  @@index([createdAt], map: "idx_admin_activity_created_at")
+  @@map("admin_activities")
+}
+
+model Announcement {
+  id        Int      @id @default(autoincrement()) @db.UnsignedInt
+  title     String   @db.VarChar(255)
+  message   String   @db.Text
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  @@index([isActive], map: "idx_announcement_is_active")
+  @@index([createdAt], map: "idx_announcement_created_at")
+  @@map("announcements")
+}
+
+// ─── Module 14: Enterprise Reports, Analytics & Data Export System ───────────
+
+model Report {
+  id          Int      @id @default(autoincrement()) @db.UnsignedInt
+  title       String   @db.VarChar(255)
+  type        String   @db.VarChar(100) // e.g. RIDE, PAYMENT, USER, DRIVER, PASSENGER, REVENUE, BOOKING, RATING
+  generatedBy Int      @map("generated_by") @db.UnsignedInt
+  fileType    String   @map("file_type") @db.VarChar(50) // CSV, XLSX, PDF
+  status      String   @default("PENDING") @db.VarChar(50) // PENDING, PROCESSING, COMPLETED, FAILED
+  filters     String?  @db.Text // JSON string of filters
+  fileUrl     String?  @map("file_url") @db.VarChar(255)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  user        User     @relation("UserReports", fields: [generatedBy], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([generatedBy], map: "idx_report_generated_by")
+  @@index([status], map: "idx_report_status")
+  @@index([type], map: "idx_report_type")
+  @@map("reports")
+}
+
+model AnalyticsSnapshot {
+  id                  Int      @id @default(autoincrement()) @db.UnsignedInt
+  totalUsers          Int      @default(0) @map("total_users") @db.Int
+  totalDrivers        Int      @default(0) @map("total_drivers") @db.Int
+  totalPassengers     Int      @default(0) @map("total_passengers") @db.Int
+  totalRides          Int      @default(0) @map("total_rides") @db.Int
+  completedRides      Int      @default(0) @map("completed_rides") @db.Int
+  cancelledRides      Int      @default(0) @map("cancelled_rides") @db.Int
+  pendingRides        Int      @default(0) @map("pending_rides") @db.Int
+  totalRevenue        Decimal  @default(0.00) @map("total_revenue") @db.Decimal(12, 2)
+  averageRideDistance Decimal  @default(0.00) @map("average_ride_distance") @db.Decimal(10, 2)
+  averageRideDuration Decimal  @default(0.00) @map("average_ride_duration") @db.Decimal(10, 2)
+  averageRating       Decimal  @default(0.00) @map("average_rating") @db.Decimal(3, 2)
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+
+  @@map("analytics_snapshots")
+}
+
+
+>>>>>>> 7a57a61ce29369380aa6e4b39459103a5ff866b9
