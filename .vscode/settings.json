@@ -1,0 +1,23 @@
+{
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "editor.defaultFormatter": "esbenp.prettier-eslint",
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-eslint"
+  },
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-eslint"
+  },
+  "[css]": {
+    "editor.defaultFormatter": "esbenp.prettier-eslint"
+  },
+  "[html]": {
+    "editor.defaultFormatter": "esbenp.prettier-eslint"
+  },
+  "eslint.workingDirectories": [
+    "./server",
+    "./client"
+  ]
+}
