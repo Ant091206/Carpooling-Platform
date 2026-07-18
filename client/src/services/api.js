@@ -1,6 +1,6 @@
-﻿import axios from 'axios';
+import axios from 'axios';
 
-// â”€â”€â”€ Single Axios Instance â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Single Axios Instance ────────────────────────────────────────────────────
 // This is the ONE AND ONLY axios instance for the entire application.
 // Every service file must import from this module.
 const api = axios.create({
@@ -20,7 +20,7 @@ const processQueue = (error, token = null) => {
   failedQueue = [];
 };
 
-// â”€â”€â”€ Request Interceptor â€” inject Bearer token â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Request Interceptor — inject Bearer token ────────────────────────────────
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -30,7 +30,7 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// â”€â”€â”€ Response Interceptor â€” token refresh + auto-logout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Response Interceptor — token refresh + auto-logout ──────────────────────
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -90,7 +90,7 @@ api.interceptors.response.use(
 
 export default api;
 
-// â”€â”€â”€ Named API collections â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Named API collections ────────────────────────────────────────────────────
 // These are thin wrappers over the single axios instance above.
 // All pages and services should import from here or from a service file that
 // itself imports `api` from this module.
@@ -117,10 +117,20 @@ export const bookingsAPI = {
 };
 
 export const walletAPI = {
-  get:              ()       => api.get('/wallet'),
-  transactions:     (params) => api.get('/wallet/transactions', { params }),
-  getTransactionById: (id)  => api.get(`/wallet/transactions/${id}`),
-  topup:            (data)  => api.post('/wallet/topup', data),
+  get:                ()       => api.get('/wallet'),
+  create:             ()       => api.post('/wallet/create'),
+  recharge:           (data)   => api.post('/wallet/recharge', data),
+  topup:              (data)   => api.post('/wallet/recharge', data),
+  transactions:       (params) => api.get('/wallet/transactions', { params }),
+  getTransactionById: (id)     => api.get(`/wallet/transactions/${id}`),
+};
+
+export const paymentsAPI = {
+  create:         (data)      => api.post('/payments', data),
+  getAll:         (params)    => api.get('/payments', { params }),
+  getById:        (id)        => api.get(`/payments/${id}`),
+  verifyRazorpay: (id, data)  => api.post(`/payments/${id}/verify-razorpay`, data),
+  refund:         (id)        => api.post(`/payments/${id}/refund`),
 };
 
 export const adminAPI = {
@@ -130,4 +140,3 @@ export const adminAPI = {
   getRides:         ()           => api.get('/admin/rides'),
   cancelRide:       (id)         => api.delete(`/admin/rides/${id}`),
 };
-

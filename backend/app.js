@@ -11,6 +11,8 @@ import organizationRoutes from './routes/organizationRoutes.js';
 import vehicleRoutes from './routes/vehicleRoutes.js';
 import rideRoutes from './routes/rideRoutes.js';
 import bookingRoutes from './routes/bookingRoutes.js';
+import walletRoutes from './routes/walletRoutes.js';
+import paymentRoutes from './routes/paymentRoutes.js';
 import errorHandler from './middleware/errorHandler.js';
 import logger from './utils/logger.js';
 import ApiError from './utils/ApiError.js';
@@ -60,6 +62,9 @@ app.use('/vehicle', vehicleRoutes);
 app.use('/api/rides', rideRoutes);
 app.use('/rides', rideRoutes);
 app.use('/api/bookings', bookingRoutes);
+// Module 10 — Wallet & Payments
+app.use('/api/wallet', walletRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // Swagger setup
 const swaggerOptions = {

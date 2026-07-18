@@ -68,6 +68,10 @@ model User {
   rides             Ride[]
   passengerBookings Booking[]      @relation("PassengerBookings")
   driverBookings    Booking[]      @relation("DriverBookings")
+  wallet            Wallet?
+  walletTransactions WalletTransaction[]
+  paymentsPaid      Payment[]      @relation("PaymentPayer")
+  paymentsReceived  Payment[]      @relation("PaymentReceiver")
 
   @@unique([organizationId, employeeId], name: "idx_user_org_emp")
   @@index([role], map: "idx_user_role")
@@ -180,12 +184,110 @@ model Booking {
   createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt      DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
 
-  ride      Ride @relation(fields: [rideId], references: [id], onDelete: Cascade)
-  passenger User @relation("PassengerBookings", fields: [passengerId], references: [id], onDelete: Cascade)
-  driver    User @relation("DriverBookings", fields: [driverId], references: [id], onDelete: Cascade)
+  ride      Ride    @relation(fields: [rideId], references: [id], onDelete: Cascade)
+  passenger User    @relation("PassengerBookings", fields: [passengerId], references: [id], onDelete: Cascade)
+  driver    User    @relation("DriverBookings", fields: [driverId], references: [id], onDelete: Cascade)
+  payment   Payment?
 
   @@index([rideId], map: "idx_booking_ride_id")
   @@index([passengerId], map: "idx_booking_passenger_id")
   @@index([driverId], map: "idx_booking_driver_id")
   @@map("bookings")
+}
+
+// ─── Module 10: Wallet & Payments ──────────────────────────────────────────────
+
+enum WalletStatus {
+  ACTIVE
+  SUSPENDED
+  CLOSED
+}
+
+enum TransactionType {
+  RECHARGE
+  RIDE_PAYMENT
+  REFUND
+  ADJUSTMENT
+  REWARD
+}
+
+enum PaymentMethod {
+  WALLET
+  CASH
+  UPI
+  RAZORPAY
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+model Wallet {
+  id           Int                 @id @default(autoincrement()) @db.UnsignedInt
+  userId       Int                 @unique @map("user_id") @db.UnsignedInt
+  balance      Decimal             @default(0.00) @db.Decimal(12, 2)
+  status       WalletStatus        @default(ACTIVE)
+  createdAt    DateTime            @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt    DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  transactions WalletTransaction[]
+
+  @@index([status], map: "idx_wallet_status")
+  @@map("wallets")
+}
+
+model WalletTransaction {
+  id              Int             @id @default(autoincrement()) @db.UnsignedInt
+  walletId        Int             @map("wallet_id") @db.UnsignedInt
+  userId          Int             @map("user_id") @db.UnsignedInt
+  bookingId       Int?            @map("booking_id") @db.UnsignedInt
+  paymentId       Int?            @map("payment_id") @db.UnsignedInt
+  transactionType TransactionType @map("transaction_type")
+  amount          Decimal         @db.Decimal(12, 2)
+  balanceBefore   Decimal         @map("balance_before") @db.Decimal(12, 2)
+  balanceAfter    Decimal         @map("balance_after") @db.Decimal(12, 2)
+  referenceNo     String          @unique @map("reference_no") @db.VarChar(64)
+  description     String?         @db.VarChar(255)
+  status          PaymentStatus   @default(SUCCESS)
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamp(0)
+
+  wallet  Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([walletId], map: "idx_txn_wallet_id")
+  @@index([userId], map: "idx_txn_user_id")
+  @@index([bookingId], map: "idx_txn_booking_id")
+  @@index([transactionType], map: "idx_txn_type")
+  @@index([status], map: "idx_txn_status")
+  @@map("wallet_transactions")
+}
+
+model Payment {
+  id                   Int           @id @default(autoincrement()) @db.UnsignedInt
+  bookingId            Int           @unique @map("booking_id") @db.UnsignedInt
+  payerId              Int           @map("payer_id") @db.UnsignedInt
+  receiverId           Int           @map("receiver_id") @db.UnsignedInt
+  paymentMethod        PaymentMethod @map("payment_method")
+  amount               Decimal       @db.Decimal(12, 2)
+  status               PaymentStatus @default(PENDING)
+  transactionReference String?       @map("transaction_reference") @db.VarChar(128)
+  gatewayOrderId       String?       @map("gateway_order_id") @db.VarChar(128)
+  gatewayPaymentId     String?       @map("gateway_payment_id") @db.VarChar(128)
+  gatewaySignature     String?       @map("gateway_signature") @db.VarChar(256)
+  paidAt               DateTime?     @map("paid_at") @db.Timestamp(0)
+  createdAt            DateTime      @default(now()) @map("created_at") @db.Timestamp(0)
+
+  booking  Booking @relation(fields: [bookingId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  payer    User    @relation("PaymentPayer", fields: [payerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  receiver User    @relation("PaymentReceiver", fields: [receiverId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([payerId], map: "idx_payment_payer")
+  @@index([receiverId], map: "idx_payment_receiver")
+  @@index([status], map: "idx_payment_status")
+  @@index([paymentMethod], map: "idx_payment_method")
+  @@map("payments")
 }

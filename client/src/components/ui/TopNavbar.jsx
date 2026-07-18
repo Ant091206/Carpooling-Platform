@@ -11,6 +11,7 @@ const appLinks = [
   ['My Rides',   '/my-rides'],
   ['My Trips',   '/my-trips'],
   ['Wallet',     '/wallet'],
+  ['Payments',   '/payment/history'],
 ];
 
 export default function TopNavbar({ publicMode = false }) {

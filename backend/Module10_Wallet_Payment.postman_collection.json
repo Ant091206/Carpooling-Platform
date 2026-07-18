@@ -1,0 +1,164 @@
+{
+  "info": {
+    "name": "Module 10 — Wallet & Payments",
+    "_postman_id": "m10-wallet-payments-v1",
+    "description": "Enterprise Carpooling Platform — Wallet & Payment APIs (Module 10)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "BASE_URL",  "value": "http://localhost:5000/api",      "type": "string" },
+    { "key": "TOKEN",     "value": "<paste_your_jwt_here>",            "type": "string" },
+    { "key": "BOOKING_ID","value": "1",                                "type": "string" },
+    { "key": "PAYMENT_ID","value": "1",                                "type": "string" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{TOKEN}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "Wallet",
+      "item": [
+        {
+          "name": "GET /wallet",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/wallet",
+            "description": "Get authenticated user wallet (auto-creates if missing)"
+          }
+        },
+        {
+          "name": "POST /wallet/create",
+          "request": {
+            "method": "POST",
+            "url": "{{BASE_URL}}/wallet/create",
+            "description": "Explicitly create a wallet for the authenticated user"
+          }
+        },
+        {
+          "name": "POST /wallet/recharge",
+          "request": {
+            "method": "POST",
+            "url": "{{BASE_URL}}/wallet/recharge",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 500,\n  \"description\": \"Monthly top-up\"\n}"
+            },
+            "description": "Recharge wallet. Amount validated server-side (min ₹10, max ₹50,000)."
+          }
+        },
+        {
+          "name": "GET /wallet/transactions",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/wallet/transactions?page=1&limit=20",
+              "query": [
+                { "key": "page",  "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "Get paginated transaction history"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "POST /payments (WALLET)",
+          "request": {
+            "method": "POST",
+            "url": "{{BASE_URL}}/payments",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": {{BOOKING_ID}},\n  \"paymentMethod\": \"WALLET\"\n}"
+            },
+            "description": "Pay for a completed ride via wallet. Amount calculated server-side."
+          }
+        },
+        {
+          "name": "POST /payments (CASH)",
+          "request": {
+            "method": "POST",
+            "url": "{{BASE_URL}}/payments",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": {{BOOKING_ID}},\n  \"paymentMethod\": \"CASH\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /payments (UPI demo)",
+          "request": {
+            "method": "POST",
+            "url": "{{BASE_URL}}/payments",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": {{BOOKING_ID}},\n  \"paymentMethod\": \"UPI\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /payments (RAZORPAY)",
+          "request": {
+            "method": "POST",
+            "url": "{{BASE_URL}}/payments",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": {{BOOKING_ID}},\n  \"paymentMethod\": \"RAZORPAY\"\n}"
+            }
+          }
+        },
+        {
+          "name": "GET /payments",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{BASE_URL}}/payments?page=1&limit=20",
+              "query": [
+                { "key": "page",  "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "Get payment history for authenticated user"
+          }
+        },
+        {
+          "name": "GET /payments/:id",
+          "request": {
+            "method": "GET",
+            "url": "{{BASE_URL}}/payments/{{PAYMENT_ID}}",
+            "description": "Get single payment by ID"
+          }
+        },
+        {
+          "name": "POST /payments/:id/verify-razorpay",
+          "request": {
+            "method": "POST",
+            "url": "{{BASE_URL}}/payments/{{PAYMENT_ID}}/verify-razorpay",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"razorpay_order_id\": \"order_test123\",\n  \"razorpay_payment_id\": \"pay_test456\",\n  \"razorpay_signature\": \"signature_here\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /payments/:id/refund",
+          "request": {
+            "method": "POST",
+            "url": "{{BASE_URL}}/payments/{{PAYMENT_ID}}/refund",
+            "description": "Refund a completed payment. Wallet refunds are credited automatically."
+          }
+        }
+      ]
+    }
+  ]
+}
