@@ -64,6 +64,8 @@ model Organization {
   createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt   DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
 
+  settings    Json?      @map("settings") @db.Json
+
   users       User[]
 
   @@index([status], map: "idx_org_status")
@@ -98,6 +100,11 @@ model User {
   designation    String?        @db.VarChar(100)
   organizationId Int?           @map("organization_id") @db.UnsignedInt
 
+  // Emergency contacts and Preferences
+  emergencyContactName  String?   @map("emergency_contact_name") @db.VarChar(100)
+  emergencyContactPhone String?   @map("emergency_contact_phone") @db.VarChar(20)
+  preferences           Json?     @map("preferences") @db.Json
+
   organizationObj   Organization?  @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   refreshTokens     RefreshToken[]
   savedPlaces       SavedPlace[]
@@ -120,6 +127,8 @@ model User {
   adminActivities          AdminActivity[]        @relation("AdminActivities")
   reports                  Report[]               @relation("UserReports")
   matchPreference          MatchPreference?       @relation("UserMatchPreferences")
+  driverTrips              Trip[]                 @relation("DriverTrips")
+  passengerTrips           Trip[]                 @relation("PassengerTrips")
 
   @@unique([organization, employeeId], name: "idx_user_org_emp")
   @@index([role], map: "idx_user_role")
@@ -175,6 +184,9 @@ model Vehicle {
   registrationExpiry         DateTime?     @map("registration_expiry") @db.DateTime(0)
   isVerified                 Boolean       @default(false) @map("is_verified")
   status                     VehicleStatus @default(ACTIVE)
+  isDefault                  Boolean       @default(false) @map("is_default")
+  vehicleImage               String?       @map("vehicle_image") @db.VarChar(255)
+  images                     Json?         @map("images") @db.Json
   createdAt                  DateTime      @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt                  DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
 
@@ -232,6 +244,7 @@ model Ride {
   reviews             RideReview[]
   sourceMatches       RideMatch[]  @relation("SourceRideMatches")
   targetMatches       RideMatch[]  @relation("TargetRideMatches")
+  trips               Trip[]
 
   @@index([driverId], map: "idx_rides_driver_id")
   @@index([departureTime], map: "idx_rides_departure_time")
@@ -270,11 +283,44 @@ model Booking {
   passenger User    @relation("PassengerBookings", fields: [passengerId], references: [id], onDelete: Cascade)
   driver    User    @relation("DriverBookings", fields: [driverId], references: [id], onDelete: Cascade)
   payment   Payment?
+  trip      Trip?
 
   @@index([rideId], map: "idx_booking_ride_id")
   @@index([passengerId], map: "idx_booking_passenger_id")
   @@index([driverId], map: "idx_booking_driver_id")
   @@map("bookings")
+}
+
+enum TripStatus {
+  ACCEPTED
+  STARTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model Trip {
+  id          Int        @id @default(autoincrement()) @db.UnsignedInt
+  rideId      Int        @map("ride_id") @db.UnsignedInt
+  bookingId   Int        @unique @map("booking_id") @db.UnsignedInt
+  driverId    Int        @map("driver_id") @db.UnsignedInt
+  passengerId Int        @map("passenger_id") @db.UnsignedInt
+  status      TripStatus @default(ACCEPTED)
+  startedAt   DateTime?  @map("started_at") @db.DateTime(0)
+  completedAt DateTime?  @map("completed_at") @db.DateTime(0)
+  createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt   DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  ride        Ride     @relation(fields: [rideId], references: [id], onDelete: Cascade)
+  booking     Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  driver      User     @relation("DriverTrips", fields: [driverId], references: [id], onDelete: Cascade)
+  passenger   User     @relation("PassengerTrips", fields: [passengerId], references: [id], onDelete: Cascade)
+
+  @@index([rideId], map: "idx_trip_ride_id")
+  @@index([bookingId], map: "idx_trip_booking_id")
+  @@index([driverId], map: "idx_trip_driver_id")
+  @@index([passengerId], map: "idx_trip_passenger_id")
+  @@map("trips")
 }
 
 // ─── Module 10: Wallet & Payments ──────────────────────────────────────────────

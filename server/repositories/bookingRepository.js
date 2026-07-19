@@ -279,6 +279,7 @@ class BookingRepository {
                     },
                 },
                 driver: { select: { id: true, name: true, phone: true } },
+                trip: { select: { id: true } },
             },
         });
     }
@@ -298,6 +299,7 @@ class BookingRepository {
                     },
                 },
                 passenger: { select: { id: true, name: true, email: true, phone: true } },
+                trip: { select: { id: true } },
             },
         });
     }

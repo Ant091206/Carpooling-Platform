@@ -1,3 +1,5 @@
+import jwt from 'jsonwebtoken';
+import { jwtConfig } from '../config/jwt.js';
 import rateLimit from 'express-rate-limit';
 import prisma from '../config/db.js';
 import ApiError from '../utils/ApiError.js';
@@ -47,9 +49,28 @@ export const checkMaintenanceMode = async (req, res, next) => {
 
     if (setting && (setting.value === 'true' || setting.value === '1')) {
       // Allow ADMIN users through if authenticated
+      let isAdmin = false;
       if (req.user && req.user.role === 'ADMIN') {
+        isAdmin = true;
+      } else {
+        const authHeader = req.headers.authorization;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+          const token = authHeader.split(' ')[1];
+          try {
+            const decoded = jwt.verify(token, jwtConfig.accessSecret);
+            if (decoded && decoded.role === 'ADMIN') {
+              isAdmin = true;
+            }
+          } catch (err) {
+            // Ignore error since actual validation is done in authMiddleware
+          }
+        }
+      }
+
+      if (isAdmin) {
         return next();
       }
+
       return res.status(503).json({
         success: false,
         message: 'System is currently undergoing scheduled maintenance. Please try again later.'

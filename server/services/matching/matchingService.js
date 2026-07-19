@@ -45,7 +45,7 @@ class MatchingService {
 
     const reqUser = await prisma.user.findUnique({
       where: { id: parseInt(userId, 10) },
-      include: { organization: true, matchPreference: true },
+      include: { matchPreference: true },
     });
 
     if (!reqUser) {
@@ -94,10 +94,10 @@ class MatchingService {
           select: {
             id: true,
             model: true,
-            plateNumber: true,
+            registrationNumber: true,
             color: true,
-            type: true,
-            capacity: true,
+            vehicleType: true,
+            seatCapacity: true,
           },
         },
       },
@@ -155,7 +155,14 @@ class MatchingService {
             ...ride.driver,
             averageRating: driverRating,
           },
-          vehicle: ride.vehicle,
+          vehicle: ride.vehicle ? {
+            id: ride.vehicle.id,
+            model: ride.vehicle.model,
+            plateNumber: ride.vehicle.registrationNumber,
+            color: ride.vehicle.color,
+            type: ride.vehicle.vehicleType,
+            capacity: ride.vehicle.seatCapacity,
+          } : null,
           pickupCoordinates: driverPickup,
           destinationCoordinates: driverDest,
         },

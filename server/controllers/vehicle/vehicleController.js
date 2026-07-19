@@ -110,6 +110,31 @@ class VehicleController {
       next(err);
     }
   }
+
+  async setDefaultVehicle(req, res, next) {
+    try {
+      const vehicle = await vehicleService.setDefaultVehicle(req.user.id, req.params.id);
+      res.status(200).json(successResponse('Vehicle set as default successfully.', vehicle));
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async uploadVehicleImage(req, res, next) {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ success: false, message: 'No image file provided.' });
+      }
+      const vehicleId = parseInt(req.body.id || req.body.vehicleId, 10);
+      if (isNaN(vehicleId)) {
+        return res.status(400).json({ success: false, message: 'Valid vehicle ID is required.' });
+      }
+      const vehicle = await vehicleService.uploadVehicleImage(vehicleId, req.user.id, req.file.filename);
+      res.status(200).json(successResponse('Vehicle image uploaded successfully.', vehicle));
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 export default new VehicleController();

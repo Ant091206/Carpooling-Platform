@@ -16,7 +16,7 @@ class User {
     if (!user) return null;
 
     // Map output to ensure 100% database field compatibility with other systems
-    return {
+    const result = {
       ...user,
       name: `${user.firstName} ${user.lastName}`.trim(),
       organization_id: user.organizationId,
@@ -24,8 +24,16 @@ class User {
       last_login: user.lastLogin,
       created_at: user.createdAt,
       updated_at: user.updatedAt,
-      organization_name: user.organizationObj ? user.organizationObj.name : user.organization
+      organization_name: user.organizationObj ? user.organizationObj.name : user.organization,
+      emergency_contact_name: user.emergencyContactName,
+      emergency_contact_phone: user.emergencyContactPhone,
+      preferences: user.preferences
     };
+
+    delete result.passwordHash;
+    delete result.otpCode;
+    delete result.otpExpiresAt;
+    return result;
   }
 
   /**
@@ -50,7 +58,10 @@ class User {
       last_login: user.lastLogin,
       created_at: user.createdAt,
       updated_at: user.updatedAt,
-      organization_name: user.organizationObj ? user.organizationObj.name : user.organization
+      organization_name: user.organizationObj ? user.organizationObj.name : user.organization,
+      emergency_contact_name: user.emergencyContactName,
+      emergency_contact_phone: user.emergencyContactPhone,
+      preferences: user.preferences
     };
   }
 
@@ -118,7 +129,7 @@ class User {
    * @param {number} id Record ID
    * @param {object} profileData Fields to update
    */
-  static async updateProfile(id, { name, firstName, lastName, phone, department, designation }) {
+  static async updateProfile(id, { name, firstName, lastName, phone, department, designation, emergencyContactName, emergencyContactPhone }) {
     let fName = firstName;
     let lName = lastName;
 
@@ -131,13 +142,35 @@ class User {
     const updateData = {};
     if (fName !== undefined) updateData.firstName = fName;
     if (lName !== undefined) updateData.lastName = lName;
+    if (fName !== undefined || lName !== undefined) {
+      updateData.name = `${fName || ''} ${lName || ''}`.trim();
+    } else if (name !== undefined) {
+      updateData.name = name.trim();
+    }
     if (phone !== undefined) updateData.phone = phone;
     if (department !== undefined) updateData.department = department;
     if (designation !== undefined) updateData.designation = designation;
+    if (emergencyContactName !== undefined) updateData.emergencyContactName = emergencyContactName;
+    if (emergencyContactPhone !== undefined) updateData.emergencyContactPhone = emergencyContactPhone;
 
     const user = await prisma.user.update({
       where: { id },
       data: updateData
+    });
+    return !!user;
+  }
+
+  /**
+   * Update user profile preferences
+   * @param {number} id Record ID
+   * @param {object} preferences JSON preferences
+   */
+  static async updatePreferences(id, preferences) {
+    const user = await prisma.user.update({
+      where: { id },
+      data: {
+        preferences
+      }
     });
     return !!user;
   }

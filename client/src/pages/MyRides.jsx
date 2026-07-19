@@ -11,57 +11,103 @@ import Card from '../components/ui/Card.jsx';
 import Button from '../components/ui/Button.jsx';
 import Badge from '../components/ui/Badge.jsx';
 import Modal from '../components/ui/Modal.jsx';
-import { ridesAPI } from '../services/api.js';
+import api, { ridesAPI } from '../services/api.js';
 
 const statusTone = { Published: 'green', Full: 'blue', Cancelled: 'red', Completed: 'slate', Started: 'amber', InProgress: 'amber' };
 
-function RideManageCard({ ride, onAction }) {
+function RideManageCard({ ride, bookings, onAction, onAcceptBooking, onRejectBooking }) {
   const departure = ride.departure_time ? new Date(ride.departure_time) : null;
   const seatsUsed = (ride.total_seats || 0) - (ride.available_seats || 0);
   const canStart = ['Published', 'Full'].includes(ride.status);
   const isActive = ['Started', 'InProgress'].includes(ride.status);
 
+  const rideBookings = bookings.filter(b => b.rideId === ride.id);
+
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 260, damping: 22 }}>
-      <Card className="grid gap-4 md:grid-cols-[1fr_auto]">
-        <div className="space-y-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <h3 className="font-heading text-xl font-extrabold text-slate-950">
-              {ride.pickup_name} → {ride.destination_name}
-            </h3>
-            <Badge tone={statusTone[ride.status] || 'slate'}>{ride.status}</Badge>
-            {ride.is_recurring && <Badge tone="blue">Recurring</Badge>}
+      <Card className="flex flex-col gap-4">
+        <div className="grid gap-4 md:grid-cols-[1fr_auto]">
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <h3 className="font-heading text-xl font-extrabold text-slate-950">
+                {ride.pickup_name} → {ride.destination_name}
+              </h3>
+              <Badge tone={statusTone[ride.status] || 'slate'}>{ride.status}</Badge>
+              {ride.is_recurring && <Badge tone="blue">Recurring</Badge>}
+            </div>
+            <p className="text-slate-600">
+              {departure ? departure.toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+              {ride.vehicle_model ? ` · ${ride.vehicle_model}` : ''}
+            </p>
+            <div className="flex items-center gap-4 text-sm">
+              <span className="flex items-center gap-1.5 text-slate-500">
+                <Users className="h-4 w-4 text-emerald-400" />
+                {seatsUsed}/{ride.total_seats || '?'} seats booked
+              </span>
+              <span className="font-extrabold text-emerald-700">₹{ride.fare_per_seat}/seat</span>
+            </div>
           </div>
-          <p className="text-slate-600">
-            {departure ? departure.toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}
-            {ride.vehicle_model ? ` · ${ride.vehicle_model}` : ''}
-          </p>
-          <div className="flex items-center gap-4 text-sm">
-            <span className="flex items-center gap-1.5 text-slate-500">
-              <Users className="h-4 w-4 text-emerald-400" />
-              {seatsUsed}/{ride.total_seats || '?'} seats booked
-            </span>
-            <span className="font-extrabold text-emerald-700">₹{ride.fare_per_seat}/seat</span>
+          <div className="flex flex-wrap items-start gap-2 md:flex-col md:items-end">
+            {canStart && (
+              <Button variant="secondary" icon={Play} size="sm" onClick={() => onAction(ride, 'start')}>
+                Start Ride
+              </Button>
+            )}
+            {isActive && (
+              <Button icon={CheckCircle} size="sm" onClick={() => onAction(ride, 'complete')}>
+                Mark Complete
+              </Button>
+            )}
+            {['Published', 'Full'].includes(ride.status) && (
+              <Button variant="ghost" size="sm" onClick={() => onAction(ride, 'cancel')}
+                className="text-red-600 hover:bg-red-50">
+                Cancel
+              </Button>
+            )}
           </div>
         </div>
-        <div className="flex flex-wrap items-start gap-2 md:flex-col md:items-end">
-          {canStart && (
-            <Button variant="secondary" icon={Play} size="sm" onClick={() => onAction(ride, 'start')}>
-              Start Ride
-            </Button>
-          )}
-          {isActive && (
-            <Button icon={CheckCircle} size="sm" onClick={() => onAction(ride, 'complete')}>
-              Mark Complete
-            </Button>
-          )}
-          {['Published', 'Full'].includes(ride.status) && (
-            <Button variant="ghost" size="sm" onClick={() => onAction(ride, 'cancel')}
-              className="text-red-600 hover:bg-red-50">
-              Cancel
-            </Button>
-          )}
-        </div>
+
+        {/* Ride bookings block */}
+        {rideBookings.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-slate-100 space-y-3">
+            <h4 className="font-heading text-sm font-bold text-slate-800">Colleague Bookings</h4>
+            <div className="divide-y divide-slate-100">
+              {rideBookings.map(booking => (
+                <div key={booking.id} className="py-2.5 flex items-center justify-between gap-4 text-sm">
+                  <div>
+                    <p className="font-bold text-slate-900">{booking.passenger?.name || 'Passenger'}</p>
+                    <p className="text-xs text-slate-500">{booking.requestedSeats} seat(s) requested &bull; {booking.passenger?.email}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {booking.status === 'PENDING' ? (
+                      <div className="flex gap-1.5">
+                        <button 
+                          onClick={() => onAcceptBooking(booking.id)} 
+                          className="px-2.5 py-1 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition shadow-sm"
+                        >
+                          Accept
+                        </button>
+                        <button 
+                          onClick={() => onRejectBooking(booking.id)} 
+                          className="px-2.5 py-1 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-100 transition"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    ) : (
+                      <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
+                        booking.status === 'ACCEPTED' ? 'bg-emerald-50 text-emerald-800' :
+                        booking.status === 'REJECTED' ? 'bg-rose-50 text-rose-800' : 'bg-slate-50 text-slate-500'
+                      }`}>
+                        {booking.status}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </Card>
     </motion.div>
   );
@@ -75,6 +121,7 @@ const ACTION_CONFIG = {
 
 export default function MyRides() {
   const navigate = useNavigate();
+  const [bookings, setBookings] = useState([]);
   const [rides, setRides] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -83,12 +130,16 @@ export default function MyRides() {
   const [actionType, setActionType] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
 
-  const fetchRides = useCallback(async () => {
+  const fetchRidesAndBookings = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await ridesAPI.getMyRides();
-      setRides(res.data?.data || res.data || []);
+      const [ridesRes, bookingsRes] = await Promise.all([
+        ridesAPI.getMyRides(),
+        api.get('/bookings?role=driver')
+      ]);
+      setRides(ridesRes.data?.data || ridesRes.data || []);
+      setBookings(bookingsRes.data?.data || []);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load rides.');
     } finally {
@@ -96,7 +147,7 @@ export default function MyRides() {
     }
   }, []);
 
-  useEffect(() => { fetchRides(); }, [fetchRides]);
+  useEffect(() => { fetchRidesAndBookings(); }, [fetchRidesAndBookings]);
 
   const activeStatuses = ['Published', 'Full', 'Started', 'InProgress'];
   const pastStatuses   = ['Completed', 'Cancelled'];
@@ -114,11 +165,31 @@ export default function MyRides() {
       toast.success(`Ride ${actionType}ed successfully.`);
       setActionTarget(null);
       setActionType(null);
-      fetchRides();
+      fetchRidesAndBookings();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Action failed.');
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handleAcceptBooking = async (bookingId) => {
+    try {
+      await api.patch(`/bookings/${bookingId}/accept`);
+      toast.success('Booking accepted successfully.');
+      fetchRidesAndBookings();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to accept booking.');
+    }
+  };
+
+  const handleRejectBooking = async (bookingId) => {
+    try {
+      await api.patch(`/bookings/${bookingId}/reject`);
+      toast.success('Booking rejected successfully.');
+      fetchRidesAndBookings();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to reject booking.');
     }
   };
 
@@ -184,7 +255,10 @@ export default function MyRides() {
               <RideManageCard
                 key={ride.id}
                 ride={ride}
+                bookings={bookings}
                 onAction={(r, type) => { setActionTarget(r); setActionType(type); }}
+                onAcceptBooking={handleAcceptBooking}
+                onRejectBooking={handleRejectBooking}
               />
             ))}
           </div>

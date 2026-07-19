@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { User } from '../models/User.js';
 import { SavedPlace } from '../models/SavedPlace.js';
 import ApiError from '../utils/ApiError.js';
@@ -30,7 +32,9 @@ class UserService {
       name: profileData.name,
       phone: profileData.phone,
       department: profileData.department,
-      designation: profileData.designation
+      designation: profileData.designation,
+      emergencyContactName: profileData.emergencyContactName,
+      emergencyContactPhone: profileData.emergencyContactPhone
     });
 
     try {
@@ -54,6 +58,18 @@ class UserService {
       throw new ApiError(404, 'User profile not found');
     }
 
+    // Delete old avatar if it exists
+    if (user.avatar) {
+      const oldPath = path.join(process.cwd(), user.avatar);
+      try {
+        if (fs.existsSync(oldPath)) {
+          fs.unlinkSync(oldPath);
+        }
+      } catch (err) {
+        console.error('Failed to delete old avatar file:', err.message);
+      }
+    }
+
     await User.updateAvatar(userId, avatarPath);
     return avatarPath;
   }
@@ -72,6 +88,15 @@ class UserService {
    * @param {object} placeData
    */
   static async createSavedPlace(userId, placeData) {
+    // Check if duplicate place name already exists for the user
+    const existingPlaces = await SavedPlace.findAllByUserId(userId);
+    const duplicate = existingPlaces.find(
+      (p) => p.place_name.toLowerCase() === placeData.place_name.toLowerCase()
+    );
+    if (duplicate) {
+      throw new ApiError(400, `A saved place with the name '${placeData.place_name}' already exists.`);
+    }
+
     const isDefault = placeData.is_default ? 1 : 0;
     
     const placeId = await SavedPlace.create(userId, {
@@ -101,6 +126,16 @@ class UserService {
     // Ownership assertion
     if (place.user_id !== userId) {
       throw new ApiError(403, 'Access denied. You do not have permissions to modify this saved place');
+    }
+
+    if (placeData.place_name && placeData.place_name.toLowerCase() !== place.place_name.toLowerCase()) {
+      const existingPlaces = await SavedPlace.findAllByUserId(userId);
+      const duplicate = existingPlaces.find(
+        (p) => p.place_name.toLowerCase() === placeData.place_name.toLowerCase() && p.id !== placeId
+      );
+      if (duplicate) {
+        throw new ApiError(400, `A saved place with the name '${placeData.place_name}' already exists.`);
+      }
     }
 
     const isDefault = placeData.is_default ? 1 : 0;
@@ -138,6 +173,36 @@ class UserService {
 
     await SavedPlace.delete(placeId);
     return true;
+  }
+
+  /**
+   * Get user preferences
+   * @param {number} userId
+   */
+  static async getUserPreferences(userId) {
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new ApiError(404, 'User profile not found');
+    }
+    return user.preferences || {};
+  }
+
+  /**
+   * Update user preferences
+   * @param {number} userId
+   * @param {object} preferences
+   */
+  static async updateUserPreferences(userId, preferences) {
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new ApiError(404, 'User profile not found');
+    }
+    const updatedPreferences = {
+      ...(user.preferences || {}),
+      ...preferences
+    };
+    await User.updatePreferences(userId, updatedPreferences);
+    return updatedPreferences;
   }
 }
 

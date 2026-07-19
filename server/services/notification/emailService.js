@@ -58,6 +58,24 @@ const templates = {
     `
   }),
 
+  invite: (userName, inviteDetails) => ({
+    subject: `Invitation to join ${inviteDetails.orgName || 'your organization'} on Enterprise Carpooling`,
+    html: `
+      <div style="font-family: 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; background: #f0fdf4; border-radius: 16px; overflow: hidden;">
+        <div style="background: linear-gradient(135deg, #059669, #10b981); padding: 32px; text-align: center;">
+          <h1 style="color: white; margin: 0; font-size: 24px;">👋 You are invited!</h1>
+        </div>
+        <div style="padding: 32px;">
+          <p style="font-size: 16px; color: #1e293b;">Hi,</p>
+          <p style="color: #475569;">You have been invited by <strong>${inviteDetails.userNameVal || 'Organization Administrator'}</strong> to join <strong>${inviteDetails.orgName || 'your organization'}</strong> on the Enterprise Carpooling Platform.</p>
+          <div style="text-align: center; margin: 24px 0;">
+            <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/register?code=${inviteDetails.companyCode}" style="background: #059669; color: white; padding: 12px 32px; border-radius: 12px; text-decoration: none; font-weight: 600;">Accept Invitation & Register</a>
+          </div>
+        </div>
+      </div>
+    `
+  }),
+
   rideBooked: (userName, rideDetails) => ({
     subject: 'Ride Booking Confirmed',
     html: `

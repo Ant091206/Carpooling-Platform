@@ -30,6 +30,11 @@ class BookingService {
             );
         }
 
+        // 3.5 Ride departure time must be in the future
+        if (new Date(ride.departureTime) <= new Date()) {
+            throw new ApiError(400, 'Cannot book a ride that has already departed.');
+        }
+
         // 4. Sufficient seats
         if (ride.availableSeats < requestedSeats) {
             throw new ApiError(

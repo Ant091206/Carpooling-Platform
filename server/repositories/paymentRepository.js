@@ -14,6 +14,31 @@ class PaymentRepository {
    * Create a new payment record in PENDING status.
    */
   async create({ bookingId, payerId, receiverId, paymentMethod, amount }) {
+    const existing = await prisma.payment.findUnique({
+      where: { bookingId },
+    });
+
+    if (existing) {
+      return await prisma.payment.update({
+        where: { bookingId },
+        data: {
+          paymentMethod,
+          amount,
+          status: 'PENDING',
+          transactionReference: `TXN-${uuidv4().toUpperCase().replace(/-/g, '').slice(0, 20)}`,
+          gatewayOrderId: null,
+          gatewayPaymentId: null,
+          gatewaySignature: null,
+          paidAt: null,
+        },
+        include: {
+          booking:  { select: { id: true, rideId: true, requestedSeats: true } },
+          payer:    { select: { id: true, name: true, email: true } },
+          receiver: { select: { id: true, name: true, email: true } },
+        },
+      });
+    }
+
     return await prisma.payment.create({
       data: {
         bookingId,

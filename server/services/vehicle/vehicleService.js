@@ -12,6 +12,9 @@ class VehicleService {
       plateNumber: v.registrationNumber,
       capacity: v.seatCapacity,
       userId: v.ownerId,
+      isDefault: v.isDefault,
+      vehicleImage: v.vehicleImage,
+      images: v.images,
     };
   }
 
@@ -61,6 +64,19 @@ class VehicleService {
    * Register a new vehicle
    */
   async createVehicle(ownerId, data) {
+    // Map snake_case to camelCase
+    if (data.registration_brand === undefined && data.brand) data.manufacturer = data.brand;
+    if (data.registration_number && !data.registrationNumber) data.registrationNumber = data.registration_number;
+    if (data.plate_number && !data.plateNumber) data.plateNumber = data.plate_number;
+    if (data.seat_capacity && !data.seatCapacity) data.seatCapacity = data.seat_capacity;
+    if (data.fuel_type && !data.fuelType) data.fuelType = data.fuel_type;
+
+    if (data.fuelType) {
+      const ft = data.fuelType.toUpperCase();
+      if (ft === 'ELECTRIC') data.fuelType = 'EV';
+      else data.fuelType = ft;
+    }
+
     const regNum = (data.registrationNumber || data.plateNumber || '').trim().toUpperCase();
 
     if (!regNum) {
@@ -175,6 +191,19 @@ class VehicleService {
       throw new ApiError(403, 'Access denied. You can only update your own vehicles.');
     }
 
+    // Map snake_case to camelCase
+    if (data.registration_number && !data.registrationNumber) data.registrationNumber = data.registration_number;
+    if (data.plate_number && !data.plateNumber) data.plateNumber = data.plate_number;
+    if (data.seat_capacity && !data.seatCapacity) data.seatCapacity = data.seat_capacity;
+    if (data.fuel_type && !data.fuelType) data.fuelType = data.fuel_type;
+    if (data.brand && !data.manufacturer) data.manufacturer = data.brand;
+
+    if (data.fuelType) {
+      const ft = data.fuelType.toUpperCase();
+      if (ft === 'ELECTRIC') data.fuelType = 'EV';
+      else data.fuelType = ft;
+    }
+
     if (data.registrationNumber || data.plateNumber) {
       const regNum = (data.registrationNumber || data.plateNumber).trim().toUpperCase();
       if (regNum !== existing.registrationNumber) {
@@ -205,6 +234,75 @@ class VehicleService {
         ...(data.status && { status: data.status }),
       },
       include: { documents: true },
+    });
+
+    return this._formatVehicle(updated);
+  }
+
+  /**
+   * Set primary (default) vehicle for owner
+   */
+  async setDefaultVehicle(ownerId, vehicleId) {
+    const userId = parseInt(ownerId, 10);
+    const id = parseInt(vehicleId, 10);
+
+    const vehicle = await prisma.vehicle.findUnique({ where: { id } });
+    if (!vehicle) {
+      throw new ApiError(404, 'Vehicle not found.');
+    }
+    if (vehicle.ownerId !== userId) {
+      throw new ApiError(403, 'Access denied.');
+    }
+
+    await prisma.$transaction([
+      prisma.vehicle.updateMany({
+        where: { ownerId: userId },
+        data: { isDefault: false }
+      }),
+      prisma.vehicle.update({
+        where: { id },
+        data: { isDefault: true }
+      })
+    ]);
+
+    const updated = await prisma.vehicle.findUnique({
+      where: { id },
+      include: { documents: true }
+    });
+    return this._formatVehicle(updated);
+  }
+
+  /**
+   * Upload and append vehicle image
+   */
+  async uploadVehicleImage(vehicleId, ownerId, filename) {
+    const id = parseInt(vehicleId, 10);
+    const vehicle = await prisma.vehicle.findUnique({ where: { id } });
+
+    if (!vehicle) {
+      throw new ApiError(404, 'Vehicle not found.');
+    }
+
+    if (vehicle.ownerId !== parseInt(ownerId, 10)) {
+      throw new ApiError(403, 'Access denied.');
+    }
+
+    let imagesList = [];
+    if (vehicle.images) {
+      try {
+        imagesList = Array.isArray(vehicle.images) ? vehicle.images : JSON.parse(vehicle.images);
+      } catch (e) {
+        imagesList = [];
+      }
+    }
+    imagesList.push(filename);
+
+    const updated = await prisma.vehicle.update({
+      where: { id },
+      data: {
+        vehicleImage: filename,
+        images: imagesList
+      }
     });
 
     return this._formatVehicle(updated);

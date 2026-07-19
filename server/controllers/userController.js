@@ -75,6 +75,22 @@ class UserController {
     await UserService.deleteSavedPlace(req.user.id, placeId);
     return new ApiResponse(200, null, 'Saved place deleted successfully').send(res);
   };
+
+  /**
+   * Fetch current user preferences
+   */
+  static getPreferences = async (req, res) => {
+    const preferences = await UserService.getUserPreferences(req.user.id);
+    return new ApiResponse(200, preferences, 'User preferences retrieved successfully').send(res);
+  };
+
+  /**
+   * Update current user preferences
+   */
+  static updatePreferences = async (req, res) => {
+    const updated = await UserService.updateUserPreferences(req.user.id, req.body);
+    return new ApiResponse(200, updated, 'User preferences updated successfully').send(res);
+  };
 }
 
 export default UserController;

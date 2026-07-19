@@ -131,7 +131,7 @@ class AdminService {
         take: limitNum,
         orderBy,
         include: {
-          organization: { select: { id: true, name: true, companyCode: true } },
+          organizationObj: { select: { id: true, name: true, companyCode: true } },
           _count: {
             select: {
               vehicles: true,
@@ -145,8 +145,13 @@ class AdminService {
       prisma.user.count({ where }),
     ]);
 
+    const mappedUsers = users.map(u => ({
+      ...u,
+      organization: u.organizationObj,
+    }));
+
     return {
-      users,
+      users: mappedUsers,
       pagination: {
         total,
         page: pageNum,
@@ -164,7 +169,7 @@ class AdminService {
     const user = await prisma.user.findUnique({
       where: { id },
       include: {
-        organization: true,
+        organizationObj: true,
         vehicles: true,
         rides: { take: 5, orderBy: { createdAt: 'desc' } },
         passengerBookings: { take: 5, orderBy: { createdAt: 'desc' }, include: { ride: true } },
@@ -176,6 +181,7 @@ class AdminService {
       throw new ApiError(404, 'User not found.');
     }
 
+    user.organization = user.organizationObj;
     return user;
   }
 
@@ -245,7 +251,7 @@ class AdminService {
         orderBy: { createdAt: 'desc' },
         include: {
           driver:  { select: { id: true, name: true, email: true, phone: true } },
-          vehicle: { select: { id: true, model: true, plateNumber: true, color: true } },
+          vehicle: { select: { id: true, model: true, registrationNumber: true, color: true } },
           _count:  { select: { bookings: true } },
         },
       }),
@@ -253,7 +259,15 @@ class AdminService {
     ]);
 
     return {
-      rides,
+      rides: rides.map(r => ({
+        ...r,
+        vehicle: r.vehicle ? {
+          id: r.vehicle.id,
+          model: r.vehicle.model,
+          plateNumber: r.vehicle.registrationNumber,
+          color: r.vehicle.color
+        } : null
+      })),
       pagination: {
         total,
         page: pageNum,

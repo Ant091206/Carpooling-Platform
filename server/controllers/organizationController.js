@@ -29,10 +29,17 @@ class OrganizationController {
   };
 
   /**
-   * Get authenticated user's own organization details
+   * Get authenticated user's own organization details or list all active organizations
    */
   static getOwnOrganization = async (req, res) => {
+    if (req.query.all === 'true' || req.query.list === 'true') {
+      const orgs = await OrganizationService.listOrganizations();
+      return new ApiResponse(200, orgs, 'Organizations list fetched successfully').send(res);
+    }
     const orgId = req.user.organization_id;
+    if (!orgId) {
+      throw new ApiError(400, 'User is not associated with any organization');
+    }
     const org = await OrganizationService.getOrganizationDetails(orgId);
     return new ApiResponse(200, org, 'Organization details fetched successfully').send(res);
   };
@@ -44,6 +51,10 @@ class OrganizationController {
     const orgId = parseInt(req.params.id, 10);
     if (isNaN(orgId)) {
       throw new ApiError(400, 'Invalid organization record identifier');
+    }
+
+    if (req.user.organization_id !== orgId) {
+      throw new ApiError(403, 'Access denied. You do not belong to this organization');
     }
 
     const org = await OrganizationService.getOrganizationDetails(orgId);
@@ -59,6 +70,10 @@ class OrganizationController {
       throw new ApiError(400, 'Invalid organization record identifier');
     }
 
+    if (req.user.role !== 'ADMIN' || req.user.organization_id !== orgId) {
+      throw new ApiError(403, 'Access denied. You do not have permissions to modify this organization');
+    }
+
     const updatedOrg = await OrganizationService.updateOrganizationDetails(orgId, req.body);
     return new ApiResponse(200, updatedOrg, 'Organization details updated successfully').send(res);
   };
@@ -72,6 +87,10 @@ class OrganizationController {
       throw new ApiError(400, 'Invalid organization record identifier');
     }
 
+    if (req.user.role !== 'ADMIN' || req.user.organization_id !== orgId) {
+      throw new ApiError(403, 'Access denied. You do not have permissions to delete this organization');
+    }
+
     await OrganizationService.deleteOrganization(orgId);
     return new ApiResponse(200, null, 'Organization deleted successfully').send(res);
   };
@@ -83,6 +102,10 @@ class OrganizationController {
     const orgId = parseInt(req.params.id, 10);
     if (isNaN(orgId)) {
       throw new ApiError(400, 'Invalid organization record identifier');
+    }
+
+    if (req.user.role !== 'ADMIN' || req.user.organization_id !== orgId) {
+      throw new ApiError(403, 'Access denied. You do not have permissions to view employees for this organization');
     }
 
     const employees = await OrganizationService.getOrganizationEmployees(orgId);
@@ -103,8 +126,100 @@ class OrganizationController {
       throw new ApiError(400, 'organizationId must be a valid integer ID');
     }
 
+    if (req.user.role !== 'ADMIN' || req.user.organization_id !== orgId) {
+      throw new ApiError(403, 'Access denied. You do not have permissions to verify employees for this organization');
+    }
+
     const result = await OrganizationService.verifyEmployee(employeeId, orgId);
     return new ApiResponse(200, result, 'Employee verification completed').send(res);
+  };
+
+  /**
+   * Fetch all distinct departments of the organization
+   */
+  static getDepartments = async (req, res) => {
+    let orgId = req.user.organization_id;
+    if (req.params.id) {
+      const paramOrgId = parseInt(req.params.id, 10);
+      if (!isNaN(paramOrgId)) {
+        if (req.user.organization_id !== paramOrgId) {
+          throw new ApiError(403, 'Access denied. You do not belong to this organization');
+        }
+        orgId = paramOrgId;
+      }
+    }
+
+    if (!orgId) {
+      throw new ApiError(400, 'User is not associated with any organization');
+    }
+
+    const departments = await OrganizationService.getOrganizationDepartments(orgId);
+    return new ApiResponse(200, departments, 'Departments list fetched successfully').send(res);
+  };
+
+  /**
+   * Invite a new employee via email
+   */
+  static inviteEmployee = async (req, res) => {
+    const orgId = req.user.organization_id;
+    if (!orgId) {
+      throw new ApiError(400, 'User is not associated with any organization');
+    }
+
+    const { email } = req.body;
+    if (!email) {
+      throw new ApiError(400, 'Email address is required');
+    }
+
+    const result = await OrganizationService.inviteEmployee(req.user.id, orgId, email);
+    return new ApiResponse(200, result, 'Employee invitation sent successfully').send(res);
+  };
+
+  /**
+   * Fetch settings of the organization
+   */
+  static getSettings = async (req, res) => {
+    let orgId = req.user.organization_id;
+    if (req.params.id) {
+      const paramOrgId = parseInt(req.params.id, 10);
+      if (!isNaN(paramOrgId)) {
+        if (req.user.organization_id !== paramOrgId) {
+          throw new ApiError(403, 'Access denied. You do not belong to this organization');
+        }
+        orgId = paramOrgId;
+      }
+    }
+
+    if (!orgId) {
+      throw new ApiError(400, 'User is not associated with any organization');
+    }
+
+    const settings = await OrganizationService.getSettings(orgId);
+    return new ApiResponse(200, settings, 'Organization settings retrieved successfully').send(res);
+  };
+
+  /**
+   * Update settings of the organization
+   */
+  static updateSettings = async (req, res) => {
+    let orgId = req.user.organization_id;
+    if (req.params.id) {
+      const paramOrgId = parseInt(req.params.id, 10);
+      if (!isNaN(paramOrgId)) {
+        orgId = paramOrgId;
+      }
+    }
+
+    if (!orgId) {
+      throw new ApiError(400, 'User is not associated with any organization');
+    }
+
+    if (req.user.role !== 'ADMIN' || req.user.organization_id !== orgId) {
+      throw new ApiError(403, 'Access denied. You do not have permissions to modify settings for this organization');
+    }
+
+    const updated = await OrganizationService.updateSettings(orgId, req.body);
+    return new ApiResponse(200, updated, 'Organization settings updated successfully').send(res);
   };
 }
 

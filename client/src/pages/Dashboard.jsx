@@ -50,7 +50,7 @@ export default function Dashboard() {
               time: b.ride.departureTime,
               fare: parseFloat(b.ride.farePerSeat) * b.requestedSeats,
               status: b.status,
-              link: `/trips/${b.rideId}`
+              link: b.trip ? `/trips/${b.trip.id}` : '/my-trips'
             });
           });
 
@@ -63,7 +63,7 @@ export default function Dashboard() {
               time: r.departure_time,
               fare: r.fare_per_seat,
               status: r.ride_status,
-              link: `/trips/${r.id}`
+              link: '/my-rides'
             });
           });
 

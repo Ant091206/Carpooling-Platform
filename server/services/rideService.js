@@ -29,6 +29,21 @@ class RideService {
             throw new ApiError(400, 'Departure time must be in the future.');
         }
 
+        // 3.5 Validate No Duplicate Ride
+        const depTime = new Date(departure_time);
+        depTime.setMilliseconds(0);
+
+        const duplicateRide = await prisma.ride.findFirst({
+            where: {
+                driverId: parseInt(driver_id, 10),
+                departureTime: depTime,
+                rideStatus: { not: 'Cancelled' }
+            }
+        });
+        if (duplicateRide) {
+            throw new ApiError(409, 'You have already published a ride at this departure time.');
+        }
+
         // 4. Validate Pickup != Destination
         if (pickup_lng === dest_lng && pickup_lat === dest_lat) {
             throw new ApiError(400, 'Pickup location cannot be the same as destination location.');

@@ -98,7 +98,7 @@ class ReportsService {
           where,
           include: {
             driver: { select: { name: true, email: true } },
-            vehicle: { select: { model: true, plateNumber: true } }
+            vehicle: { select: { model: true, registrationNumber: true } }
           },
           orderBy: { createdAt: 'desc' }
         });
@@ -106,7 +106,7 @@ class ReportsService {
           'Ride ID': r.id,
           'Driver Name': r.driver?.name || 'N/A',
           'Driver Email': r.driver?.email || 'N/A',
-          'Vehicle': `${r.vehicle?.model} (${r.vehicle?.plateNumber})`,
+          'Vehicle': `${r.vehicle?.model} (${r.vehicle?.registrationNumber || 'N/A'})`,
           'Pickup Point': r.pickupName,
           'Destination': r.destinationName,
           'Departure Time': r.departureTime,
@@ -155,7 +155,7 @@ class ReportsService {
         }
         const users = await prisma.user.findMany({
           where,
-          include: { organization: { select: { name: true } } },
+          include: { organizationObj: { select: { name: true } } },
           orderBy: { createdAt: 'desc' }
         });
         return users.map(u => ({
@@ -164,7 +164,7 @@ class ReportsService {
           'Name': u.name,
           'Email': u.email,
           'Phone': u.phone || 'N/A',
-          'Organization': u.organization?.name || 'N/A',
+          'Organization': u.organizationObj?.name || 'N/A',
           'Department': u.department || 'N/A',
           'Designation': u.designation || 'N/A',
           'Role': u.role,

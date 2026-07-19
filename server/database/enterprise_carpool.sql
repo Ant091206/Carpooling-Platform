@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS `organizations` (
   `logo`         VARCHAR(255)      NULL,
   `website`      VARCHAR(255)      NULL,
   `status`       ENUM('ACTIVE', 'INACTIVE', 'SUSPENDED') NOT NULL DEFAULT 'ACTIVE',
+  `settings`     JSON              NULL,
   `created_at`   TIMESTAMP         NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`   TIMESTAMP         NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
@@ -39,6 +40,9 @@ CREATE TABLE IF NOT EXISTS `users` (
   `department`      VARCHAR(100)      NULL,
   `designation`     VARCHAR(100)      NULL,
   `avatar`          VARCHAR(255)      NULL,
+  `emergency_contact_name` VARCHAR(100) NULL,
+  `emergency_contact_phone` VARCHAR(20) NULL,
+  `preferences`     JSON              NULL,
   `role`            ENUM('ADMIN', 'EMPLOYEE') NOT NULL DEFAULT 'EMPLOYEE',
   `status`          ENUM('ACTIVE', 'INACTIVE', 'PENDING', 'SUSPENDED') NOT NULL DEFAULT 'ACTIVE',
   `last_login`      TIMESTAMP         NULL,

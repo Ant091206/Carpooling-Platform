@@ -15,6 +15,7 @@ const vehicleSchema = z.object({
   brand: z.string().min(1, 'Brand is required'),
   model: z.string().min(1, 'Model is required'),
   registration_number: z.string().min(1, 'Registration number is required'),
+  color: z.string().min(1, 'Color is required'),
   fuel_type: z.enum(['Petrol', 'Diesel', 'CNG', 'Electric', 'Hybrid'], {
     errorMap: () => ({ message: 'Choose a valid fuel type' })
   }),
@@ -54,6 +55,7 @@ export default function MyVehicle() {
       brand: '',
       model: '',
       registration_number: '',
+      color: '',
       fuel_type: 'Electric',
       seat_capacity: 4
     });
@@ -66,6 +68,7 @@ export default function MyVehicle() {
       brand: veh.brand || 'Tata',
       model: veh.model,
       registration_number: veh.plateNumber || veh.registration_number,
+      color: veh.color || '',
       fuel_type: veh.fuelType || 'Electric',
       seat_capacity: veh.capacity || veh.seat_capacity || 4
     });
@@ -91,6 +94,7 @@ export default function MyVehicle() {
       brand: data.brand,
       model: data.model,
       registration_number: data.registration_number,
+      color: data.color,
       fuel_type: data.fuel_type,
       seat_capacity: parseInt(data.seat_capacity, 10),
       is_default: true
@@ -120,6 +124,38 @@ export default function MyVehicle() {
       fetchVehicles();
     } catch (err) {
       toast.error('Failed to set default vehicle.');
+    }
+  };
+
+  const handleFileUpload = async (e, type, vehicleId) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('vehicle_image', file);
+    formData.append('vehicleId', vehicleId);
+    formData.append('id', vehicleId);
+
+    const loadingToast = toast.loading(`Uploading ${type === 'image' ? 'vehicle photo' : type + ' document'}...`);
+    try {
+      const uploadRes = await api.post('/vehicle/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      const filename = uploadRes.data.data.vehicleImage || uploadRes.data.data.images[uploadRes.data.data.images.length - 1];
+
+      if (type !== 'image') {
+        await api.post(`/vehicle/${vehicleId}/documents`, {
+          documentType: type,
+          documentUrl: filename
+        });
+      }
+
+      toast.success(`${type === 'image' ? 'Photo' : type + ' document'} uploaded successfully!`);
+      fetchVehicles();
+    } catch (err) {
+      toast.error('Upload failed. Ensure format is correct.');
+    } finally {
+      toast.dismiss(loadingToast);
     }
   };
 
@@ -155,15 +191,123 @@ export default function MyVehicle() {
                   </div>
                 </div>
 
+                {vehicle.vehicleImage && (
+                  <img 
+                    src={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/uploads/${vehicle.vehicleImage}`} 
+                    alt="Vehicle" 
+                    className="w-full h-36 object-cover rounded-2xl mb-4 mt-2" 
+                  />
+                )}
+
                 <div className="mt-4">
                   <h3 className="font-heading text-2xl font-extrabold text-slate-950 truncate">
                     {vehicle.brand} {vehicle.model}
                   </h3>
                   <p className="text-slate-500 text-sm font-semibold mt-1">
-                    Reg: {vehicle.plateNumber} &bull; Capacity: {vehicle.capacity} seats &bull; {vehicle.fuelType}
+                    Reg: {vehicle.plateNumber} &bull; Capacity: {vehicle.capacity} seats &bull; {vehicle.fuelType} ({vehicle.color})
                   </p>
                 </div>
               </div>
+
+              {/* Documents and Photo checklist */}
+              {(() => {
+                const rcDoc = vehicle.documents?.find(d => d.documentType === 'RC');
+                const insDoc = vehicle.documents?.find(d => d.documentType === 'Insurance');
+                const pucDoc = vehicle.documents?.find(d => d.documentType === 'PUC');
+                return (
+                  <div className="mt-4 pt-4 border-t border-slate-100 space-y-3">
+                    <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider block">Verification Checklist</span>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="flex flex-col items-center bg-slate-50 border border-slate-100 p-2.5 rounded-2xl text-center relative group overflow-hidden">
+                        <span className="text-[10px] font-bold text-slate-800">RC</span>
+                        <span className={`text-[9px] font-extrabold mt-1 uppercase ${
+                          rcDoc?.verificationStatus === 'APPROVED' ? 'text-emerald-600' :
+                          rcDoc?.verificationStatus === 'PENDING' ? 'text-amber-500' :
+                          rcDoc?.verificationStatus === 'REJECTED' ? 'text-rose-600' : 'text-slate-400'
+                        }`}>
+                          {rcDoc?.verificationStatus || 'Missing'}
+                        </span>
+                        <input 
+                          type="file" 
+                          id={`rc-${vehicle.id}`} 
+                          className="hidden" 
+                          onChange={(e) => handleFileUpload(e, 'RC', vehicle.id)} 
+                        />
+                        <label 
+                          htmlFor={`rc-${vehicle.id}`} 
+                          className="absolute inset-0 rounded-2xl bg-emerald-600/90 text-white flex items-center justify-center text-[10px] font-bold opacity-0 group-hover:opacity-100 cursor-pointer transition-all duration-200"
+                        >
+                          {rcDoc ? 'Replace' : 'Upload'}
+                        </label>
+                      </div>
+
+                      <div className="flex flex-col items-center bg-slate-50 border border-slate-100 p-2.5 rounded-2xl text-center relative group overflow-hidden">
+                        <span className="text-[10px] font-bold text-slate-800">Insurance</span>
+                        <span className={`text-[9px] font-extrabold mt-1 uppercase ${
+                          insDoc?.verificationStatus === 'APPROVED' ? 'text-emerald-600' :
+                          insDoc?.verificationStatus === 'PENDING' ? 'text-amber-500' :
+                          insDoc?.verificationStatus === 'REJECTED' ? 'text-rose-600' : 'text-slate-400'
+                        }`}>
+                          {insDoc?.verificationStatus || 'Missing'}
+                        </span>
+                        <input 
+                          type="file" 
+                          id={`ins-${vehicle.id}`} 
+                          className="hidden" 
+                          onChange={(e) => handleFileUpload(e, 'Insurance', vehicle.id)} 
+                        />
+                        <label 
+                          htmlFor={`ins-${vehicle.id}`} 
+                          className="absolute inset-0 rounded-2xl bg-emerald-600/90 text-white flex items-center justify-center text-[10px] font-bold opacity-0 group-hover:opacity-100 cursor-pointer transition-all duration-200"
+                        >
+                          {insDoc ? 'Replace' : 'Upload'}
+                        </label>
+                      </div>
+
+                      <div className="flex flex-col items-center bg-slate-50 border border-slate-100 p-2.5 rounded-2xl text-center relative group overflow-hidden">
+                        <span className="text-[10px] font-bold text-slate-800">PUC</span>
+                        <span className={`text-[9px] font-extrabold mt-1 uppercase ${
+                          pucDoc?.verificationStatus === 'APPROVED' ? 'text-emerald-600' :
+                          pucDoc?.verificationStatus === 'PENDING' ? 'text-amber-500' :
+                          pucDoc?.verificationStatus === 'REJECTED' ? 'text-rose-600' : 'text-slate-400'
+                        }`}>
+                          {pucDoc?.verificationStatus || 'Missing'}
+                        </span>
+                        <input 
+                          type="file" 
+                          id={`puc-${vehicle.id}`} 
+                          className="hidden" 
+                          onChange={(e) => handleFileUpload(e, 'PUC', vehicle.id)} 
+                        />
+                        <label 
+                          htmlFor={`puc-${vehicle.id}`} 
+                          className="absolute inset-0 rounded-2xl bg-emerald-600/90 text-white flex items-center justify-center text-[10px] font-bold opacity-0 group-hover:opacity-100 cursor-pointer transition-all duration-200"
+                        >
+                          {pucDoc ? 'Replace' : 'Upload'}
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 bg-emerald-50/30 border border-emerald-100/50 p-2.5 rounded-2xl">
+                      <input 
+                        type="file" 
+                        id={`photo-${vehicle.id}`} 
+                        className="hidden" 
+                        onChange={(e) => handleFileUpload(e, 'image', vehicle.id)} 
+                      />
+                      <label 
+                        htmlFor={`photo-${vehicle.id}`} 
+                        className="text-[10px] font-extrabold text-emerald-850 hover:text-emerald-950 cursor-pointer underline shrink-0"
+                      >
+                        {vehicle.vehicleImage ? 'Change Photo' : 'Upload Photo'}
+                      </label>
+                      <span className="text-[10px] text-slate-400 italic truncate">
+                        {vehicle.vehicleImage ? 'Photo uploaded' : 'No photo uploaded'}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
 
               <div className="mt-4 pt-4 border-t border-slate-50 flex items-center justify-between">
                 {vehicle.isDefault ? (
@@ -213,6 +357,13 @@ export default function MyVehicle() {
             placeholder="KA 05 EV 2034" 
             error={errors.registration_number?.message} 
             {...register('registration_number')} 
+          />
+
+          <Input 
+            label="Vehicle color" 
+            placeholder="White" 
+            error={errors.color?.message} 
+            {...register('color')} 
           />
 
           <div className="grid gap-4 sm:grid-cols-2">

@@ -8,6 +8,12 @@ class RefreshToken {
    * @param {Date} expiresAt Token expiration date
    */
   static async create(userId, token, expiresAt) {
+    const existing = await prisma.refreshToken.findUnique({
+      where: { token }
+    });
+    if (existing) {
+      return existing.id;
+    }
     const result = await prisma.refreshToken.create({
       data: {
         userId,

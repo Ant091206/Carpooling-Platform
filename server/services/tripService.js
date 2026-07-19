@@ -38,10 +38,18 @@ class TripService {
         // Fetch vehicle information to return complete details
         let vehicle = null;
         if (trip.ride.vehicleId) {
-            vehicle = await prisma.vehicle.findUnique({
+            const dbVehicle = await prisma.vehicle.findUnique({
                 where: { id: trip.ride.vehicleId },
-                select: { id: true, model: true, plateNumber: true, color: true }
+                select: { id: true, model: true, registrationNumber: true, color: true }
             });
+            if (dbVehicle) {
+                vehicle = {
+                    id: dbVehicle.id,
+                    model: dbVehicle.model,
+                    plateNumber: dbVehicle.registrationNumber,
+                    color: dbVehicle.color
+                };
+            }
         }
 
         return {

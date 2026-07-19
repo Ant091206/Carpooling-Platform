@@ -2,6 +2,7 @@ import Organization from '../models/Organization.js';
 import prisma from '../config/db.js';
 import bcrypt from 'bcryptjs';
 import ApiError from '../utils/ApiError.js';
+import { sendEmail } from './notification/emailService.js';
 
 class OrganizationService {
   /**
@@ -206,6 +207,142 @@ class OrganizationService {
     }
 
     return await Organization.findEmployees(orgId);
+  }
+
+  /**
+   * List all active organizations
+   */
+  static async listOrganizations() {
+    const orgs = await prisma.organization.findMany({
+      where: { status: 'ACTIVE' }
+    });
+    return orgs.map(org => ({
+      id: org.id,
+      name: org.name,
+      company_code: org.companyCode,
+      email: org.email,
+      phone: org.phone,
+      address: org.address,
+      logo: org.logo,
+      website: org.website,
+      status: org.status,
+      created_at: org.createdAt,
+      updated_at: org.updatedAt
+    }));
+  }
+
+  /**
+   * Fetch all distinct departments for an organization
+   * @param {number} orgId
+   */
+  static async getOrganizationDepartments(orgId) {
+    const org = await Organization.findById(orgId);
+    if (!org) {
+      throw new ApiError(404, 'Organization profile not found');
+    }
+
+    const users = await prisma.user.findMany({
+      where: {
+        organizationId: orgId,
+        department: { not: null }
+      },
+      select: {
+        department: true
+      },
+      distinct: ['department']
+    });
+
+    return users.map(u => u.department).filter(Boolean);
+  }
+
+  /**
+   * Invite an employee to join the organization via email
+   * @param {number} adminUserId
+   * @param {number} orgId
+   * @param {string} email
+   */
+  static async inviteEmployee(adminUserId, orgId, email) {
+    const org = await Organization.findById(orgId);
+    if (!org) {
+      throw new ApiError(404, 'Organization profile not found');
+    }
+
+    // Check if the user is already associated with this organization
+    const existingUser = await prisma.user.findUnique({
+      where: { email }
+    });
+
+    if (existingUser && existingUser.organizationId === orgId) {
+      throw new ApiError(400, 'User with this email is already an employee in your organization');
+    }
+
+    const adminUser = await prisma.user.findUnique({
+      where: { id: adminUserId }
+    });
+
+    const adminName = adminUser ? adminUser.name : 'Organization Administrator';
+
+    const emailResult = await sendEmail(email, 'invite', {
+      userName: 'Employee',
+      orgName: org.name,
+      companyCode: org.company_code,
+      userNameVal: adminName
+    });
+
+    await prisma.emailQueue.create({
+      data: {
+        userId: adminUserId,
+        recipient: email,
+        subject: `Invitation to join ${org.name} on Enterprise Carpooling`,
+        body: `You have been invited to join ${org.name} on the Enterprise Carpooling Platform. Company Code: ${org.company_code}`,
+        status: emailResult.success ? 'SENT' : 'FAILED',
+        sentAt: emailResult.success ? new Date() : null
+      }
+    });
+
+    return { success: true, email };
+  }
+
+  /**
+   * Retrieve organization settings
+   * @param {number} orgId
+   */
+  static async getSettings(orgId) {
+    const org = await prisma.organization.findUnique({
+      where: { id: orgId }
+    });
+    if (!org) {
+      throw new ApiError(404, 'Organization profile not found');
+    }
+    return org.settings || {};
+  }
+
+  /**
+   * Update organization settings
+   * @param {number} orgId
+   * @param {object} settings
+   */
+  static async updateSettings(orgId, settings) {
+    const org = await prisma.organization.findUnique({
+      where: { id: orgId }
+    });
+    if (!org) {
+      throw new ApiError(404, 'Organization profile not found');
+    }
+
+    const updatedSettings = {
+      ...(org.settings || {}),
+      ...settings
+    };
+
+    const updated = await prisma.organization.update({
+      where: { id: orgId },
+      data: {
+        settings: updatedSettings
+      }
+    });
+
+    return updated.settings;
   }
 }
 

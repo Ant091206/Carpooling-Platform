@@ -19,7 +19,21 @@ export const updateProfileValidator = [
   body('designation')
     .trim()
     .notEmpty().withMessage('designation is required')
-    .isLength({ max: 100 }).withMessage('designation must not exceed 100 characters')
+    .isLength({ max: 100 }).withMessage('designation must not exceed 100 characters'),
+
+  body('emergencyContactName')
+    .optional({ nullable: true, checkFalsy: true })
+    .trim()
+    .isLength({ max: 100 }).withMessage('emergencyContactName must not exceed 100 characters'),
+
+  body('emergencyContactPhone')
+    .optional({ nullable: true, checkFalsy: true })
+    .trim()
+    .isLength({ min: 5, max: 20 }).withMessage('emergencyContactPhone must be between 5 and 20 characters')
+];
+
+export const preferencesValidator = [
+  body().isObject().withMessage('Preferences must be a valid JSON object')
 ];
 
 export const savedPlaceValidator = [
@@ -48,5 +62,6 @@ export const savedPlaceValidator = [
 
 export default {
   updateProfileValidator,
-  savedPlaceValidator
+  savedPlaceValidator,
+  preferencesValidator
 };

@@ -1,0 +1,4 @@
+Payment ID,Booking ID,Payer,Payer Email,Receiver,Method,Amount (INR),Status,Created At
+"3","5","Bob Passenger","passenger_m10_1784418159505@testcompany.com","Alice Driver","CASH","150","SUCCESS","2026-07-18T23:42:41.000Z"
+"2","4","Bob Passenger","passenger_m10_1784418132674@testcompany.com","Alice Driver","CASH","150","SUCCESS","2026-07-18T23:42:14.000Z"
+"1","3","Bob Passenger","passenger_m10_1784418121055@testcompany.com","Alice Driver","CASH","150","SUCCESS","2026-07-18T23:42:02.000Z"

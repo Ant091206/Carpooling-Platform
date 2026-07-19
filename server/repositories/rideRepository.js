@@ -26,10 +26,11 @@ class RideRepository {
 
         const pickupPoint = `POINT(${pickup_lng} ${pickup_lat})`;
         const destPoint = `POINT(${dest_lng} ${dest_lat})`;
+        const formattedDeparture = new Date(departure_time).toISOString().slice(0, 19).replace('T', ' ');
 
         const [result] = await pool.execute(query, [
             driver_id, vehicle_id, pickup_name, pickupPoint,
-            destination_name, destPoint, departure_time,
+            destination_name, destPoint, formattedDeparture,
             available_seats, fare_per_seat, distance_km, estimated_duration,
             route_geometry, is_recurring || false, notes || null
         ]);
@@ -75,6 +76,9 @@ class RideRepository {
     }
 
     async update(id, driver_id, updateData) {
+        if (updateData.departure_time) {
+            updateData.departure_time = new Date(updateData.departure_time).toISOString().slice(0, 19).replace('T', ' ');
+        }
         const fields = Object.keys(updateData);
         if (fields.length === 0) return 0;
 
@@ -108,9 +112,9 @@ class RideRepository {
                 u.avatar as driver_avatar,
                 u.department as driver_department,
                 v.model as vehicle_model,
-                v.plate_number as vehicle_plate_number,
+                v.registration_number as vehicle_plate_number,
                 v.color as vehicle_color,
-                v.capacity as vehicle_capacity
+                v.seat_capacity as vehicle_capacity
             FROM rides r
             JOIN users u ON r.driver_id = u.id
             JOIN vehicles v ON r.vehicle_id = v.id

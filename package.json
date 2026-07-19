@@ -8,7 +8,7 @@
     "install:server": "cd server && npm install",
     "install:client": "cd client && npm install --legacy-peer-deps",
     "install:all": "concurrently \"npm run install:server\" \"npm run install:client\"",
-    "db:prep": "cd server && npx prisma generate",
+    "db:prep": "node server/scripts/dbPrep.js",
     "dev:server": "cd server && npm run dev",
     "dev:client": "cd client && npm run dev",
     "start": "npm run db:prep && concurrently --kill-others \"npm run dev:server\" \"npm run dev:client\""

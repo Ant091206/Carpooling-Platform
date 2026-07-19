@@ -38,7 +38,49 @@ router.post(
 // Protect all following routes with authentication middleware
 router.use(authMiddleware);
 
-// Organization API Routes
+// ==========================================
+// Static Routes (Must be before parameterized routes to avoid conflicts)
+// ==========================================
+
+// Departments API Routes
+router.get(
+  '/departments',
+  asyncHandler(OrganizationController.getDepartments)
+);
+
+// Invitation API Route
+router.post(
+  '/invite',
+  roleMiddleware('ADMIN'),
+  asyncHandler(OrganizationController.inviteEmployee)
+);
+
+// Verification API Routes
+router.post(
+  '/verify-employee',
+  roleMiddleware('ADMIN'),
+  asyncHandler(OrganizationController.verifyEmployee)
+);
+
+router.post(
+  '/verify',
+  roleMiddleware('ADMIN'),
+  asyncHandler(OrganizationController.verifyEmployee)
+);
+
+// Organization Settings API Routes
+router.get(
+  '/settings',
+  asyncHandler(OrganizationController.getSettings)
+);
+
+router.put(
+  '/settings',
+  roleMiddleware('ADMIN'),
+  asyncHandler(OrganizationController.updateSettings)
+);
+
+// Organization creation & Own org fetch
 router.post(
   '/',
   roleMiddleware('ADMIN'),
@@ -50,6 +92,32 @@ router.post(
 router.get(
   '/',
   asyncHandler(OrganizationController.getOwnOrganization)
+);
+
+// ==========================================
+// Parameterized Routes (Must be last)
+// ==========================================
+
+router.get(
+  '/:id/departments',
+  asyncHandler(OrganizationController.getDepartments)
+);
+
+router.get(
+  '/:id/settings',
+  asyncHandler(OrganizationController.getSettings)
+);
+
+router.put(
+  '/:id/settings',
+  roleMiddleware('ADMIN'),
+  asyncHandler(OrganizationController.updateSettings)
+);
+
+router.get(
+  '/:id/employees',
+  roleMiddleware('ADMIN'),
+  asyncHandler(OrganizationController.getEmployees)
 );
 
 router.get(
@@ -69,19 +137,6 @@ router.delete(
   '/:id',
   roleMiddleware('ADMIN'),
   asyncHandler(OrganizationController.delete)
-);
-
-// Employees API Routes
-router.get(
-  '/:id/employees',
-  roleMiddleware('ADMIN'),
-  asyncHandler(OrganizationController.getEmployees)
-);
-
-router.post(
-  '/verify-employee',
-  roleMiddleware('ADMIN'),
-  asyncHandler(OrganizationController.verifyEmployee)
 );
 
 export default router;

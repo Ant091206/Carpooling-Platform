@@ -5,6 +5,8 @@ import authMiddleware from '../../middleware/authMiddleware.js';
 import roleMiddleware from '../../middleware/roleMiddleware.js';
 import { validateRequest } from '../../middleware/validationMiddleware.js';
 
+import upload from '../../middleware/uploadMiddleware.js';
+
 const router = express.Router();
 
 router.use(authMiddleware);
@@ -12,6 +14,18 @@ router.use(authMiddleware);
 /**
  * USER VEHICLE ENDPOINTS
  */
+router.post(
+  '/upload',
+  upload.single('vehicle_image'),
+  vehicleController.uploadVehicleImage
+);
+
+router.patch(
+  '/default/:id',
+  [param('id').isInt({ min: 1 }).withMessage('Valid vehicle ID is required.')],
+  validateRequest,
+  vehicleController.setDefaultVehicle
+);
 router.post(
   '/',
   [

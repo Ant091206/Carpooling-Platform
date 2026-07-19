@@ -8,7 +8,7 @@ import { UserController } from '../controllers/userController.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 import { validateRequest } from '../middleware/validationMiddleware.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
-import { updateProfileValidator, savedPlaceValidator } from '../validators/userValidator.js';
+import { updateProfileValidator, savedPlaceValidator, preferencesValidator } from '../validators/userValidator.js';
 
 const router = Router();
 
@@ -33,10 +33,12 @@ const storage = multer.diskStorage({
 
 const fileFilter = (req, file, cb) => {
   const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-  if (allowedMimeTypes.includes(file.mimetype)) {
+  const fileExt = path.extname(file.originalname).toLowerCase();
+  const allowedExtensions = ['.jpg', '.jpeg', '.png'];
+  if (allowedMimeTypes.includes(file.mimetype) && allowedExtensions.includes(fileExt)) {
     cb(null, true);
   } else {
-    cb(new Error('Invalid image file format. Only JPG, JPEG, and PNG are allowed.'), false);
+    cb(new Error('Invalid image file format or extension. Only JPG, JPEG, and PNG are allowed.'), false);
   }
 };
 
@@ -73,6 +75,29 @@ router.post(
   },
   asyncHandler(UserController.uploadAvatar)
 );
+
+// Alias Avatar Upload Route
+router.post(
+  '/profile/image',
+  (req, res, next) => {
+    upload.single('avatar')(req, res, (err) => {
+      if (err instanceof multer.MulterError) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(400).json({ success: false, message: 'Upload failed: Image exceeds maximum size of 2 MB' });
+        }
+        return res.status(400).json({ success: false, message: `Upload failed: ${err.message}` });
+      } else if (err) {
+        return res.status(400).json({ success: false, message: err.message });
+      }
+      next();
+    });
+  },
+  asyncHandler(UserController.uploadAvatar)
+);
+
+// User Preferences API Routes
+router.get('/preferences', asyncHandler(UserController.getPreferences));
+router.put('/preferences', preferencesValidator, validateRequest, asyncHandler(UserController.updatePreferences));
 
 // Saved Places API Routes
 router.get('/saved-places', asyncHandler(UserController.getSavedPlaces));

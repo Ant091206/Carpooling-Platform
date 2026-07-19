@@ -47,10 +47,14 @@ class AdminController {
   async getUsers(req, res, next) {
     try {
       const users = await prisma.user.findMany({
-        include: { organization: { select: { name: true } } },
+        include: { organizationObj: { select: { name: true } } },
         orderBy: { createdAt: 'desc' }
       });
-      res.status(200).json(successResponse('Users fetched successfully', users));
+      const mapped = users.map(u => ({
+        ...u,
+        organization: u.organizationObj
+      }));
+      res.status(200).json(successResponse('Users fetched successfully', mapped));
     } catch (error) {
       next(error);
     }
