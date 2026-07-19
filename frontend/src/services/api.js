@@ -89,9 +89,7 @@ export const carpoolAPI = {
   // Vehicle
   getVehicles: () => api.get('/vehicle'),
   getVehicleById: (id) => api.get(`/vehicle/${id}`),
-  addVehicle: (data) => api.post('/vehicle', data, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  }),
+  addVehicle: (data) => api.post('/vehicle', data),
   updateVehicle: (id, data) => api.put(`/vehicle/${id}`, data),
   deleteVehicle: (id) => api.delete(`/vehicle/${id}`),
   setDefaultVehicle: (id) => api.patch(`/vehicle/default/${id}`),
@@ -99,7 +97,7 @@ export const carpoolAPI = {
   // Wallet
   getWallet: () => api.get('/wallet'),
   getTransactions: () => api.get('/wallet/transactions'),
-  topUpWallet: (data) => api.post('/wallet/topup', data),
+  topUpWallet: (data) => api.post('/wallet/recharge', data),
 };
 
 export default api;

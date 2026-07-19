@@ -1,17 +1,35 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { Card } from '../../components/Card';
+import { carpoolAPI } from '../../services/api';
 
 export function Login() {
-  const { register, handleSubmit } = useForm();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm();
   const navigate = useNavigate();
 
-  const onSubmit = (data) => {
-    console.log(data);
-    navigate('/dashboard');
+  const onSubmit = async (data) => {
+    try {
+      const res = await carpoolAPI.login({
+        email: data.email,
+        password: data.password,
+      });
+      const accessToken = res.data?.data?.accessToken || res.data?.accessToken;
+      if (accessToken) {
+        localStorage.setItem('accessToken', accessToken);
+      }
+      toast.success('Signed in successfully');
+      navigate('/dashboard');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Invalid login credentials.');
+    }
   };
 
   return (
@@ -26,14 +44,16 @@ export function Login() {
           label="Email address"
           type="email"
           placeholder="name@company.com"
-          {...register('email', { required: true })}
+          error={errors.email?.message}
+          {...register('email', { required: 'Email is required' })}
         />
         <div>
           <Input
             label="Password"
             type="password"
             placeholder="••••••••"
-            {...register('password', { required: true })}
+            error={errors.password?.message}
+            {...register('password', { required: 'Password is required' })}
           />
           <div className="flex justify-end mt-1.5">
             <a href="#" className="text-sm font-medium text-primary-600 hover:text-primary-500">
@@ -42,7 +62,7 @@ export function Login() {
           </div>
         </div>
 
-        <Button type="submit" fullWidth className="mt-6">
+        <Button type="submit" fullWidth isLoading={isSubmitting} className="mt-6">
           Sign In
         </Button>
       </form>

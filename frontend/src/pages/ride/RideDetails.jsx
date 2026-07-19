@@ -71,8 +71,8 @@ export function RideDetails() {
     setBookingLoading(true);
     try {
       const res = await carpoolAPI.bookRide({
-        ride_id: parseInt(id),
-        seats_booked: parseInt(pendingBooking.seats),
+        rideId: parseInt(id, 10),
+        requestedSeats: parseInt(pendingBooking.seats, 10),
       });
       toast.success('Ride booked successfully!');
       setShowConfirm(false);
