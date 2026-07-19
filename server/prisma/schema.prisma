@@ -223,9 +223,9 @@ model Ride {
   driverId            Int          @map("driver_id") @db.UnsignedInt
   vehicleId           Int          @map("vehicle_id") @db.UnsignedInt
   pickupName          String       @map("pickup_name") @db.VarChar(255)
-  pickupLocation      Unsupported("point") @map("pickup_location")
+  pickupLocation      Unsupported("point")? @map("pickup_location")
   destinationName     String       @map("destination_name") @db.VarChar(255)
-  destinationLocation Unsupported("point") @map("destination_location")
+  destinationLocation Unsupported("point")? @map("destination_location")
   departureTime       DateTime     @map("departure_time") @db.DateTime(0)
   availableSeats      Int          @map("available_seats") @db.Int
   farePerSeat         Decimal      @map("fare_per_seat") @db.Decimal(10, 2)

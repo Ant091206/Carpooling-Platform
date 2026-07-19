@@ -191,17 +191,20 @@ export default function Dashboard() {
             </div>
           ) : places.length > 0 ? (
             <div className="space-y-3 max-h-48 overflow-y-auto pr-1">
-              {places.map((place) => (
-                <div key={place.id} className="flex gap-3 rounded-2xl border border-emerald-100 p-3 items-center">
-                  <span className="grid h-10 w-10 place-items-center rounded-full bg-emerald-50 text-emerald-700 shrink-0">
-                    {place.name.toLowerCase() === 'home' ? <Home className="h-4 w-4" /> : <MapPin className="h-4 w-4" />}
-                  </span>
-                  <div className="overflow-hidden">
-                    <p className="font-bold text-slate-900">{place.name}</p>
-                    <p className="text-sm text-slate-600 truncate">{place.address}</p>
+              {places.map((place) => {
+                const nameText = place.placeName || place.name || 'Location';
+                return (
+                  <div key={place.id} className="flex gap-3 rounded-2xl border border-emerald-100 p-3 items-center">
+                    <span className="grid h-10 w-10 place-items-center rounded-full bg-emerald-50 text-emerald-700 shrink-0">
+                      {nameText.toLowerCase() === 'home' ? <Home className="h-4 w-4" /> : <MapPin className="h-4 w-4" />}
+                    </span>
+                    <div className="overflow-hidden">
+                      <p className="font-bold text-slate-900">{nameText}</p>
+                      <p className="text-sm text-slate-600 truncate">{place.address}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="rounded-2xl border-2 border-dashed border-slate-100 p-6 text-center text-slate-500">
