@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import { Car, ChevronDown, LogOut, Menu, User, X, Activity } from 'lucide-react';
 import Button from './Button.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
@@ -20,7 +20,7 @@ export default function TopNavbar({ publicMode = false }) {
   const [open, setOpen] = useState(false);
   const { user, isAuthenticated, logout } = useAuth();
   const { unreadCount } = useNotifications();
-  const navigate = useNavigate();
+
 
   const appLinks = user?.role === 'ADMIN'
     ? [...baseAppLinks, ['System', '/system']]
@@ -70,8 +70,8 @@ export default function TopNavbar({ publicMode = false }) {
             </>
           ) : (
             <>
-              <Button as={Link} variant="ghost" onClick={() => navigate('/login')}>Sign In</Button>
-              <Button onClick={() => navigate('/register')}>Get Started</Button>
+              <Link to="/login"><Button variant="ghost">Sign In</Button></Link>
+              <Link to="/register"><Button>Get Started</Button></Link>
             </>
           )}
         </div>
