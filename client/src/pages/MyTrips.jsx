@@ -52,8 +52,12 @@ export default function MyTrips() {
         list = driver.map(t => ({ ...t, role: 'Driver' }));
       }
 
-      // Sort by newest departure time first
-      list.sort((a, b) => new Date(b.ride.departureTime) - new Date(a.ride.departureTime));
+      // Sort by newest departure time first — handle both camelCase and snake_case
+      list.sort((a, b) => {
+        const tA = a.ride?.departureTime || a.ride?.departure_time || 0;
+        const tB = b.ride?.departureTime || b.ride?.departure_time || 0;
+        return new Date(tB) - new Date(tA);
+      });
       setTrips(list);
     } catch (e) {
       toast.error('Failed to load trips.');

@@ -312,6 +312,7 @@ async function main() {
     // Add Wallet Transaction Ledger (RECHARGE / PAYMENT / REFUND)
     const wallet = await prisma.wallet.findUnique({ where: { userId: payer.id } });
     if (wallet) {
+      const walletBal = parseFloat(wallet.balance);
       await prisma.walletTransaction.create({
         data: {
           walletId: wallet.id,
@@ -319,8 +320,8 @@ async function main() {
           paymentId: p.id,
           transactionType: i % 5 === 0 ? 'RECHARGE' : 'RIDE_PAYMENT',
           amount: 150.00,
-          balanceBefore: wallet.balance,
-          balanceAfter: wallet.balance.minus(150.00),
+          balanceBefore: walletBal,
+          balanceAfter: i % 5 === 0 ? walletBal + 150.00 : walletBal - 150.00,
           referenceNo: `TXN-REF-${10000 + i}`,
           description: i % 5 === 0 ? 'In-app Razorpay Wallet Recharge' : 'Daily carpool pool share ride fare',
           status: 'SUCCESS'
@@ -328,18 +329,19 @@ async function main() {
       });
       txnCount++;
 
-      // Create a duplicate receive transaction for receiver
+      // Create credit transaction for receiver
       const recWallet = await prisma.wallet.findUnique({ where: { userId: receiver.id } });
       if (recWallet) {
+        const recBal = parseFloat(recWallet.balance);
         await prisma.walletTransaction.create({
           data: {
             walletId: recWallet.id,
             userId: receiver.id,
             paymentId: p.id,
-            transactionType: 'REWARD',
+            transactionType: 'REFUND',
             amount: 150.00,
-            balanceBefore: recWallet.balance,
-            balanceAfter: recWallet.balance.plus(150.00),
+            balanceBefore: recBal,
+            balanceAfter: recBal + 150.00,
             referenceNo: `TXN-REC-${20000 + i}`,
             description: 'Carpool ride credits received',
             status: 'SUCCESS'

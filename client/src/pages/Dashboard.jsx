@@ -42,33 +42,40 @@ export default function Dashboard() {
           const tripsList = [];
           
           activeBookings.forEach(b => {
+            const pickup = b.ride?.pickupName || b.ride?.pickup_name || '—';
+            const dest = b.ride?.destinationName || b.ride?.destination_name || '—';
+            const time = b.ride?.departureTime || b.ride?.departure_time;
+            const fare = parseFloat(b.ride?.farePerSeat || b.ride?.fare_per_seat || 0) * (b.requestedSeats || 1);
             tripsList.push({
               id: b.id,
               type: 'passenger',
               rideId: b.rideId,
-              route: `${b.ride.pickupName} to ${b.ride.destinationName}`,
-              time: b.ride.departureTime,
-              fare: parseFloat(b.ride.farePerSeat) * b.requestedSeats,
+              route: `${pickup} → ${dest}`,
+              time,
+              fare,
               status: b.status,
               link: b.trip ? `/trips/${b.trip.id}` : '/my-trips'
             });
           });
 
           activeRides.forEach(r => {
+            const pickup = r.pickup_name || r.pickupName || '—';
+            const dest = r.destination_name || r.destinationName || '—';
+            const time = r.departure_time || r.departureTime;
             tripsList.push({
               id: r.id,
               type: 'driver',
               rideId: r.id,
-              route: `${r.pickup_name} to ${r.destination_name}`,
-              time: r.departure_time,
-              fare: r.fare_per_seat,
-              status: r.ride_status,
+              route: `${pickup} → ${dest}`,
+              time,
+              fare: r.fare_per_seat || r.farePerSeat,
+              status: r.ride_status || r.rideStatus,
               link: '/my-rides'
             });
           });
 
-          // Sort trips by time ascending (earliest first)
-          tripsList.sort((a, b) => new Date(a.time) - new Date(b.time));
+          // Sort trips by time ascending (earliest first), guard against null times
+          tripsList.sort((a, b) => new Date(a.time || 0) - new Date(b.time || 0));
           if (tripsList.length > 0) {
             imminent = tripsList[0];
           }
