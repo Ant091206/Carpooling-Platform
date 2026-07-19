@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
-import { Calendar, Clock, MapPin, Users, Info as InfoIcon, Wallet, CreditCard } from 'lucide-react';
+import { Calendar, Car, Clock, MapPin, Users, Info as InfoIcon, Wallet, CreditCard } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import PageShell from '../components/shared/PageShell.jsx';
 import Card from '../components/ui/Card.jsx';
