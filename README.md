@@ -1,83 +1,330 @@
-# Enterprise Carpooling Platform
+<div align="center">
 
-A production-ready Enterprise Carpooling Platform designed for corporate environments. It connects corporate passengers and drivers to coordinate secure commutes, save costs, track routes using Mapbox GL JS, and reduce corporate carbon footprints.
+# 🚗 Enterprise Carpooling Platform
+
+### Smart • Secure • Sustainable Corporate Mobility
+
+A full-stack Enterprise Carpooling Platform that enables employees to share rides within an organization, reducing travel costs, parking congestion, and carbon emissions while providing a seamless and secure commuting experience.
+
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)
+![Node.js](https://img.shields.io/badge/Node.js-Express-339933?logo=node.js)
+![Prisma](https://img.shields.io/badge/Prisma-ORM-2D3748?logo=prisma)
+![MySQL](https://img.shields.io/badge/MySQL-8-4479A1?logo=mysql)
+![JWT](https://img.shields.io/badge/Auth-JWT-orange)
+![License](https://img.shields.io/badge/License-MIT-green)
+
+</div>
 
 ---
 
-## Technical Architecture
+# 📌 Overview
 
-### Tech Stack
-- **Frontend**: React 19, Vite, React Router DOM v6, Tailwind CSS, Axios, Lucide React Icons, Framer Motion, React Hook Form, React Hot Toast.
-- **Backend**: Node.js, Express.js, MySQL 8 (mysql2 with pools), JWT Authentication, bcrypt, dotenv, helmet, morgan, express-validator.
-- **Maps**: Mapbox GL JS API Integration.
+Enterprise Carpooling Platform is a modern corporate ride-sharing solution designed for organizations.
 
-### Folder Structure
+Employees can publish rides, search available rides, book seats, manage trips, track payments through an integrated wallet, and reduce commuting expenses while helping organizations achieve sustainability goals.
+
+---
+
+# ✨ Features
+
+## 👤 Authentication
+
+- Secure JWT Authentication
+- Employee Login
+- Role-Based Access
+- Protected APIs
+
+---
+
+## 🚘 Vehicle Management
+
+- Register Vehicles
+- Update Vehicle Details
+- Vehicle Verification
+- Vehicle Availability
+
+---
+
+## 🛣 Ride Publishing
+
+Drivers can
+
+- Offer rides
+- Select pickup & destination
+- Set departure time
+- Define available seats
+- Manage published rides
+
+---
+
+## 🔍 Ride Search
+
+Passengers can
+
+- Search rides
+- Filter by date
+- Filter by destination
+- Search nearby rides
+- View ride details
+- View driver details
+
+---
+
+## 📖 Booking Management
+
+Passengers can
+
+- Book rides
+- View booking status
+- Cancel bookings
+
+Drivers can
+
+- Accept bookings
+- Reject bookings
+
+---
+
+## 🚍 Trips Management
+
+- Upcoming Trips
+- Ongoing Trips
+- Completed Trips
+- Trip Timeline
+- Driver Trips
+- Passenger Trips
+
+---
+
+## 💳 Wallet & Payments
+
+- Digital Wallet
+- Payment History
+- Ride Payments
+- Refund Handling
+- Transaction History
+
+---
+
+## 🏢 Organization Management
+
+- Employee Registration
+- Organization Profiles
+- Role Management
+
+---
+
+# 🏗 System Architecture
+
+```text
+Frontend (React + Vite)
+          │
+          ▼
+REST APIs (Express.js)
+          │
+          ▼
+Business Logic (Services)
+          │
+          ▼
+Prisma ORM
+          │
+          ▼
+MySQL Database
 ```
-d:/Car_Poolinng/
-├── client/                      # React 19 Frontend Web Client
+
+---
+
+# 🛠 Tech Stack
+
+## Frontend
+
+- React.js
+- Vite
+- React Router
+- Axios
+- Tailwind CSS
+
+## Backend
+
+- Node.js
+- Express.js
+- Prisma ORM
+- JWT Authentication
+- bcrypt
+- dotenv
+
+## Database
+
+- MySQL
+- Prisma ORM
+
+## Maps
+
+- Mapbox GL JS *(or replace with Google Maps API if that's what your final project uses)*
+
+---
+
+# 📂 Project Structure
+
+```text
+Enterprise-Carpooling/
+
+├── client/
 │   ├── src/
-│   │   ├── assets/              # Static media, icons, and logo assets
-│   │   ├── components/          # Reusable shared components
-│   │   ├── context/             # React Context Providers (AuthContext, etc.)
-│   │   ├── hooks/               # Custom reusable React hooks
-│   │   ├── layouts/             # Page layouts (RootLayout, Sidebar)
-│   │   ├── pages/               # Views / Page Components (Home, Login, Dashboard)
-│   │   ├── routes/              # Routing configurations and auth protection shields
-│   │   ├── services/            # API call modules (Axios client config)
-│   │   └── utils/               # Formatting, date helpers
-│   ├── tailwind.config.js       # Tailwind configuration
-│   └── vite.config.js           # Vite server settings & proxy config
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── layouts/
+│   │   ├── services/
+│   │   ├── hooks/
+│   │   └── utils/
 │
-├── server/                      # Express.js Rest API
-│   ├── config/                  # Database connections
-│   ├── controllers/             # Request handlers / Controller layer
-│   ├── database/                # Schema tables and DDL
-│   ├── middleware/              # Auth, error, validator middlewares
-│   ├── models/                  # SQL Query / Database wrappers
-│   ├── routes/                  # Express route paths definitions
-│   ├── services/                # Business logic helper layers
-│   ├── utils/                   # Helpers: logger, response formatters
-│   └── server.js                # Server entry point
+├── backend/
+│   ├── controllers/
+│   ├── routes/
+│   ├── services/
+│   ├── middleware/
+│   ├── prisma/
+│   ├── config/
+│   └── utils/
 │
-└── package.json                 # Monorepo Workspace command coordinator
+└── README.md
 ```
 
 ---
 
-## Installation & Setup
+# 🚀 Core Workflow
 
-### 1. Prerequisites
-- Node.js installed (v18+ recommended)
-- MySQL Server 8 running locally or remotely
-
-### 2. Configure Environment Variables
-1. **Backend**: Setup environment properties in `server/.env` based on `server/.env.example`
-2. **Frontend**: Setup client properties in `client/.env` based on `client/.env.example`
-
-### 3. Database Initialization
-Create your database inside MySQL:
-```sql
-CREATE DATABASE enterprise_carpool;
+```text
+Employee Login
+        │
+        ▼
+Search / Publish Ride
+        │
+        ▼
+Ride Booking
+        │
+        ▼
+Trip Management
+        │
+        ▼
+Wallet & Payments
+        │
+        ▼
+Ride Completion
 ```
 
-### 4. Install Dependencies
-Run from the project workspace root:
+---
+
+# 🔐 Security
+
+- JWT Authentication
+- Password Hashing (bcrypt)
+- Protected Routes
+- Role-Based Authorization
+- Input Validation
+- Centralized Error Handling
+
+---
+
+# ⚡ Installation
+
+## Clone Repository
+
+```bash
+git clone <repository-url>
+cd Enterprise-Carpooling
+```
+
+---
+
+## Install Dependencies
+
+```bash
+npm install
+```
+
+or
+
 ```bash
 npm run install:all
 ```
 
-### 5. Running the Application
-To run both the server and client concurrently in development mode:
-```bash
-npm run dev
+---
+
+## Configure Environment Variables
+
+Create `.env` files based on the provided `.env.example`.
+
+Example backend variables:
+
+```env
+DATABASE_URL=
+JWT_SECRET=
+PORT=
 ```
-- Frontend will open at `http://localhost:3000`
-- Backend API will run at `http://localhost:5000`
 
 ---
 
-## Scripts List
-- `npm run install:all` - Install packages for client and server.
-- `npm run dev` - Start development servers concurrently for React and Express.
-- `npm run dev:server` - Launch backend API in watcher mode (nodemon).
-- `npm run dev:client` - Run React client compiler in watcher mode.
+## Start Development
+
+Backend
+
+```bash
+npm run dev
+```
+
+Frontend
+
+```bash
+npm run dev
+```
+
+---
+
+# 📡 API Modules
+
+| Module | Description |
+|---------|-------------|
+| Authentication | Login & Security |
+| Organization | Organization Management |
+| Vehicle | Vehicle Management |
+| Ride Search | Search Available Rides |
+| Booking | Book & Manage Seats |
+| Trips | Active & Completed Trips |
+| Wallet | Payments & Transactions |
+
+---
+
+# 🌱 Future Enhancements
+
+- Real-time ride tracking
+- Google Maps / Mapbox navigation
+- Push notifications
+- Ride ratings & reviews
+- AI-based ride recommendations
+- Fare estimation
+- Corporate analytics dashboard
+
+---
+
+# 🤝 Contributors
+
+Developed as a collaborative hackathon project.
+
+Special thanks to all team members for contributing to the frontend, backend, database design, API development, and testing.
+
+---
+
+# 📄 License
+
+This project is licensed under the MIT License.
+
+---
+
+<div align="center">
+
+### ⭐ If you like this project, consider giving it a star!
+
+Made with ❤️ using React, Express, Prisma & MySQL
+
+</div>
