@@ -2,329 +2,233 @@
 
 # 🚗 Enterprise Carpooling Platform
 
-### Smart • Secure • Sustainable Corporate Mobility
+**A production-ready carpooling system built for corporate campuses — connect drivers and passengers, plan routes on live maps, split costs, and cut your organization's carbon footprint.**
 
-A full-stack Enterprise Carpooling Platform that enables employees to share rides within an organization, reducing travel costs, parking congestion, and carbon emissions while providing a seamless and secure commuting experience.
+[![Node.js](https://img.shields.io/badge/Node.js-v18%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+[![Express](https://img.shields.io/badge/Express.js-4-000000?logo=express&logoColor=white)](https://expressjs.com/)
+[![MySQL](https://img.shields.io/badge/MySQL-8-4479A1?logo=mysql&logoColor=white)](https://www.mysql.com/)
+[![Prisma](https://img.shields.io/badge/Prisma-ORM-2D3748?logo=prisma&logoColor=white)](https://www.prisma.io/)
+[![License](https://img.shields.io/badge/License-ISC-blue.svg)](#license)
 
-![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)
-![Node.js](https://img.shields.io/badge/Node.js-Express-339933?logo=node.js)
-![Prisma](https://img.shields.io/badge/Prisma-ORM-2D3748?logo=prisma)
-![MySQL](https://img.shields.io/badge/MySQL-8-4479A1?logo=mysql)
-![JWT](https://img.shields.io/badge/Auth-JWT-orange)
-![License](https://img.shields.io/badge/License-MIT-green)
+[Features](#-features) · [Tech Stack](#-tech-stack) · [Getting Started](#-getting-started) · [Project Structure](#-project-structure) · [API](#-api-overview) · [Contributing](#-contributing)
 
 </div>
 
 ---
 
-# 📌 Overview
+## 📖 Overview
 
-Enterprise Carpooling Platform is a modern corporate ride-sharing solution designed for organizations.
+**Enterprise Carpooling Platform** helps organizations coordinate secure, cost-effective employee commutes. Employees can offer or find rides within their organization, track routes in real time on interactive maps, manage in-app wallets and payments, and administrators get full visibility through dashboards, analytics, and system health monitoring.
 
-Employees can publish rides, search available rides, book seats, manage trips, track payments through an integrated wallet, and reduce commuting expenses while helping organizations achieve sustainability goals.
-
----
-
-# ✨ Features
-
-## 👤 Authentication
-
-- Secure JWT Authentication
-- Employee Login
-- Role-Based Access
-- Protected APIs
+Built as a full-stack monorepo with a React 19 frontend and a Node.js/Express backend, it's designed to be secure, scalable, and easy to self-host.
 
 ---
 
-## 🚘 Vehicle Management
+## ✨ Features
 
-- Register Vehicles
-- Update Vehicle Details
-- Vehicle Verification
-- Vehicle Availability
+### 👤 For Employees
+- 🔐 **Secure authentication** — JWT-based login/register with OTP verification and password recovery
+- 🚙 **Offer & find rides** — publish rides as a driver or search and book as a passenger
+- 🗺️ **Live route mapping** — interactive maps for route planning and tracking
+- 🚘 **Vehicle management** — register and manage your vehicles
+- 💰 **In-app wallet** — recharge, track transactions, and view balance history
+- 💳 **Payments** — integrated payment processing for ride bookings
+- ⭐ **Ratings & reviews** — rate co-riders and drivers after each trip
+- 🔔 **Notifications** — real-time alerts with configurable preferences
+- 📍 **Saved places** — quick-access frequent pickup/drop locations
+- 📜 **Ride & trip history** — full history of past rides, bookings, and transactions
 
----
-
-## 🛣 Ride Publishing
-
-Drivers can
-
-- Offer rides
-- Select pickup & destination
-- Set departure time
-- Define available seats
-- Manage published rides
-
----
-
-## 🔍 Ride Search
-
-Passengers can
-
-- Search rides
-- Filter by date
-- Filter by destination
-- Search nearby rides
-- View ride details
-- View driver details
+### 🛠️ For Administrators
+- 🏢 **Organization management** — onboard and manage corporate organizations
+- 📊 **Analytics dashboard** — usage, adoption, and cost-savings insights
+- 📈 **Reports** — generate and review custom reports
+- 🩺 **System health & logs** — monitor uptime, errors, and activity logs
+- ⚙️ **System settings** — centralized platform configuration
+- 🧑‍💼 **Admin activity tracking** — full audit trail of administrative actions
 
 ---
 
-## 📖 Booking Management
+## 🧰 Tech Stack
 
-Passengers can
-
-- Book rides
-- View booking status
-- Cancel bookings
-
-Drivers can
-
-- Accept bookings
-- Reject bookings
+| Layer | Technologies |
+|---|---|
+| **Frontend** | React 19, Vite, React Router DOM v6, Tailwind CSS, Axios, TanStack Query, React Hook Form + Zod, Framer Motion, Lucide Icons, Recharts, Socket.IO Client, React Hot Toast |
+| **Backend** | Node.js, Express.js, Prisma ORM, MySQL 8, JWT Authentication, bcrypt.js, Helmet, Morgan, express-validator, Multer, Swagger |
+| **Maps** | Mapbox GL JS |
+| **Payments** | Razorpay integration |
+| **Tooling** | ESLint, Prettier, Nodemon, Concurrently |
 
 ---
 
-## 🚍 Trips Management
+## 📁 Project Structure
 
-- Upcoming Trips
-- Ongoing Trips
-- Completed Trips
-- Trip Timeline
-- Driver Trips
-- Passenger Trips
-
----
-
-## 💳 Wallet & Payments
-
-- Digital Wallet
-- Payment History
-- Ride Payments
-- Refund Handling
-- Transaction History
-
----
-
-## 🏢 Organization Management
-
-- Employee Registration
-- Organization Profiles
-- Role Management
-
----
-
-# 🏗 System Architecture
-
-```text
-Frontend (React + Vite)
-          │
-          ▼
-REST APIs (Express.js)
-          │
-          ▼
-Business Logic (Services)
-          │
-          ▼
-Prisma ORM
-          │
-          ▼
-MySQL Database
 ```
-
----
-
-# 🛠 Tech Stack
-
-## Frontend
-
-- React.js
-- Vite
-- React Router
-- Axios
-- Tailwind CSS
-
-## Backend
-
-- Node.js
-- Express.js
-- Prisma ORM
-- JWT Authentication
-- bcrypt
-- dotenv
-
-## Database
-
-- MySQL
-- Prisma ORM
-
-## Maps
-
-- Mapbox GL JS *(or replace with Google Maps API if that's what your final project uses)*
-
----
-
-# 📂 Project Structure
-
-```text
-Enterprise-Carpooling/
-
-├── client/
+Carpooling-Platform/
+├── client/                      # React 19 frontend
 │   ├── src/
-│   │   ├── components/
-│   │   ├── pages/
-│   │   ├── layouts/
-│   │   ├── services/
-│   │   ├── hooks/
-│   │   └── utils/
+│   │   ├── assets/              # Static media, icons, logos
+│   │   ├── components/          # Reusable UI components
+│   │   ├── context/             # React Context providers (AuthContext, etc.)
+│   │   ├── hooks/                # Custom React hooks
+│   │   ├── layouts/             # Page layouts (RootLayout, Sidebar)
+│   │   ├── pages/                # Views (Dashboard, Rides, Wallet, Admin, System, ...)
+│   │   ├── routes/               # Routing & auth-protected route guards
+│   │   ├── services/             # Axios API service modules
+│   │   └── utils/                # Formatters, date helpers
+│   ├── tailwind.config.js
+│   └── vite.config.js
 │
-├── backend/
-│   ├── controllers/
-│   ├── routes/
-│   ├── services/
-│   ├── middleware/
-│   ├── prisma/
-│   ├── config/
-│   └── utils/
+├── backend/                     # Express.js REST API
+│   ├── config/                   # Database & app configuration
+│   ├── controllers/              # Route handlers (auth, ride, booking, wallet, ...)
+│   ├── middleware/               # Auth, validation, error handling
+│   ├── models/ / repositories/   # Data access layer
+│   ├── prisma/                   # Prisma schema, migrations, seed script
+│   ├── routes/                   # Express route definitions
+│   ├── services/                 # Business logic
+│   ├── utils/                    # Logger, response helpers
+│   └── server.js                 # Entry point
 │
-└── README.md
+└── package.json                 # Monorepo workspace command coordinator
 ```
 
----
-
-# 🚀 Core Workflow
-
-```text
-Employee Login
-        │
-        ▼
-Search / Publish Ride
-        │
-        ▼
-Ride Booking
-        │
-        ▼
-Trip Management
-        │
-        ▼
-Wallet & Payments
-        │
-        ▼
-Ride Completion
-```
+> **Note:** The repository also contains `server/` and `frontend/` directories, kept as earlier iterations of the API/client. The actively maintained stack is `backend/` (Prisma + MySQL) and `client/` (React 19 + Vite).
 
 ---
 
-# 🔐 Security
+## 🚀 Getting Started
 
-- JWT Authentication
-- Password Hashing (bcrypt)
-- Protected Routes
-- Role-Based Authorization
-- Input Validation
-- Centralized Error Handling
+### Prerequisites
+- **Node.js** v18 or higher
+- **MySQL** 8.x (local or remote instance)
+- A **Mapbox** access token ([get one here](https://www.mapbox.com/))
+- (Optional) **Razorpay** API keys for payment features
 
----
-
-# ⚡ Installation
-
-## Clone Repository
-
+### 1. Clone the repository
 ```bash
-git clone <repository-url>
-cd Enterprise-Carpooling
+git clone https://github.com/<your-username>/Carpooling-Platform.git
+cd Carpooling-Platform
 ```
 
----
+### 2. Configure environment variables
 
-## Install Dependencies
+**Backend** — copy `backend/.env.example` to `backend/.env` and fill in the values:
+```env
+PORT=5000
+NODE_ENV=development
 
-```bash
-npm install
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=your_password
+DB_NAME=enterprise_carpool
+
+DATABASE_URL="mysql://root:your_password@localhost:3306/enterprise_carpool"
+
+JWT_SECRET=your_jwt_access_secret
+JWT_REFRESH_SECRET=your_jwt_refresh_secret
+
+UPLOAD_PATH=uploads/
+MAPBOX_ACCESS_TOKEN=your_mapbox_token
 ```
 
-or
+**Client** — copy `client/.env.example` to `client/.env`:
+```env
+VITE_API_URL=http://localhost:5000/api
+VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
+VITE_RAZORPAY_KEY=your_razorpay_key_id
+```
 
+### 3. Create the database
+```sql
+CREATE DATABASE enterprise_carpool;
+```
+
+### 4. Install dependencies
 ```bash
 npm run install:all
 ```
 
----
-
-## Configure Environment Variables
-
-Create `.env` files based on the provided `.env.example`.
-
-Example backend variables:
-
-```env
-DATABASE_URL=
-JWT_SECRET=
-PORT=
+### 5. Run database migrations & seed (Prisma)
+```bash
+cd backend
+npx prisma migrate dev
+npx prisma db seed
+cd ..
 ```
 
----
-
-## Start Development
-
-Backend
-
+### 6. Start the app
 ```bash
 npm run dev
 ```
-
-Frontend
-
-```bash
-npm run dev
-```
+- 🌐 Frontend → `http://localhost:3000` (or `5173` for Vite default)
+- 🔗 Backend API → `http://localhost:5000`
 
 ---
 
-# 📡 API Modules
+## 📜 Available Scripts
 
-| Module | Description |
-|---------|-------------|
-| Authentication | Login & Security |
-| Organization | Organization Management |
-| Vehicle | Vehicle Management |
-| Ride Search | Search Available Rides |
-| Booking | Book & Manage Seats |
-| Trips | Active & Completed Trips |
-| Wallet | Payments & Transactions |
+Run from the project root:
 
----
-
-# 🌱 Future Enhancements
-
-- Real-time ride tracking
-- Google Maps / Mapbox navigation
-- Push notifications
-- Ride ratings & reviews
-- AI-based ride recommendations
-- Fare estimation
-- Corporate analytics dashboard
+| Script | Description |
+|---|---|
+| `npm run install:all` | Install dependencies for both client and server |
+| `npm run dev` | Run frontend and backend concurrently in dev mode |
+| `npm run dev:server` | Start the backend with hot-reload (nodemon) |
+| `npm run dev:client` | Start the Vite frontend dev server |
+| `npm run db:prep` | Prepare/seed the database before startup |
+| `npm start` | Prep the database and launch both apps |
 
 ---
 
-# 🤝 Contributors
+## 🔌 API Overview
 
-Developed as a collaborative hackathon project.
+The backend exposes a RESTful API (mounted at `/api`) organized into resource-based routers:
 
-Special thanks to all team members for contributing to the frontend, backend, database design, API development, and testing.
+| Resource | Endpoint Prefix | Covers |
+|---|---|---|
+| Auth | `/api/auth` | Register, login, OTP verification, token refresh |
+| Users | `/api/users` | Profile, saved places |
+| Organizations | `/api/organizations` | Org onboarding & management |
+| Vehicles | `/api/vehicles` | Vehicle CRUD |
+| Rides | `/api/rides` | Publish, search, update, and cancel rides |
+| Bookings | `/api/bookings` | Ride booking & booking history |
+| Wallet | `/api/wallet` | Wallet balance & transactions |
+| Payments | `/api/payments` | Payment processing & history |
+
+Postman collections for key modules (Ride Publishing, Vehicle Management, Wallet & Payments) are included in `backend/` for quick API testing. Interactive Swagger docs are also available via `swagger-jsdoc` / `swagger-ui-express`.
 
 ---
 
-# 📄 License
+## 🗄️ Data Model Highlights
 
-This project is licensed under the MIT License.
+Powered by **Prisma ORM**, the schema includes: `Organization`, `User`, `Vehicle`, `Ride`, `Booking`, `Wallet` & `WalletTransaction`, `Payment`, `RideReview`, `RideHistory`, `Notification` & `NotificationPreference`, `SavedPlace`, `RouteMatch` & `MatchPreference`, plus admin/audit models like `SystemLog`, `AdminActivity`, and `Report`.
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! To get started:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to your branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+Please run `npm run lint` before submitting a PR.
+
+---
+
+## 📄 License
+
+This project is licensed under the **ISC License**.
 
 ---
 
 <div align="center">
 
-### ⭐ If you like this project, consider giving it a star!
-
-Made with ❤️ using React, Express, Prisma & MySQL
+Made with ❤️ to make corporate commutes smarter, cheaper, and greener.
 
 </div>
