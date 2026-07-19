@@ -131,4 +131,46 @@ router.delete(
  */
 router.get('/activity-logs', adminController.getActivityLogs);
 
+/**
+ * Organization Management
+ */
+router.get('/organizations', adminController.getOrganizations);
+router.post(
+  '/organizations',
+  [
+    body('name').isString().notEmpty().withMessage('Organization name is required.'),
+    body('companyCode').isString().notEmpty().withMessage('Company code is required.'),
+    body('email').isEmail().withMessage('Valid organization email is required.'),
+  ],
+  validateRequest,
+  adminController.createOrganization
+);
+router.put(
+  '/organizations/:id',
+  [param('id').isInt({ min: 1 }).withMessage('Valid organization ID is required.')],
+  validateRequest,
+  adminController.updateOrganization
+);
+
+/**
+ * Fuel & Travel Cost Configuration
+ */
+router.get('/cost-config', adminController.getCostConfig);
+router.put('/cost-config', adminController.updateCostConfig);
+
+/**
+ * Vehicle Verification & Status
+ */
+router.patch(
+  '/vehicles/:id/verify',
+  [param('id').isInt({ min: 1 }).withMessage('Valid vehicle ID is required.')],
+  validateRequest,
+  adminController.verifyVehicle
+);
+
+/**
+ * Employee Participation Dashboard Metrics
+ */
+router.get('/participation', adminController.getParticipationMetrics);
+
 export default router;

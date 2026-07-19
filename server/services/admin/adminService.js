@@ -533,6 +533,184 @@ class AdminService {
       },
     };
   }
+
+  /**
+   * Organization CRUD
+   */
+  async getOrganizations({ search = '', status, page = 1, limit = 20 }) {
+    const pageNum  = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
+    const skip     = (pageNum - 1) * limitNum;
+
+    const where = {};
+    if (search) {
+      where.OR = [
+        { name: { contains: search } },
+        { companyCode: { contains: search } },
+        { email: { contains: search } },
+      ];
+    }
+    if (status) where.status = status;
+
+    const [organizations, total] = await Promise.all([
+      prisma.organization.findMany({
+        where,
+        skip,
+        take: limitNum,
+        orderBy: { createdAt: 'desc' },
+        include: { _count: { select: { users: true } } },
+      }),
+      prisma.organization.count({ where }),
+    ]);
+
+    return {
+      organizations,
+      pagination: {
+        total,
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(total / limitNum),
+      },
+    };
+  }
+
+  async createOrganization(adminId, { name, companyCode, email, phone, address, website }) {
+    if (!name || !companyCode || !email) {
+      throw new ApiError(400, 'Name, company code, and email are required.');
+    }
+
+    const existing = await prisma.organization.findFirst({
+      where: { OR: [{ companyCode }, { email }] },
+    });
+    if (existing) {
+      throw new ApiError(400, 'Organization with this company code or email already exists.');
+    }
+
+    const org = await prisma.organization.create({
+      data: { name, companyCode, email, phone, address, website, status: 'ACTIVE' },
+    });
+
+    await this.logActivity(adminId, 'ORGANIZATION_CREATE', 'Organization', `Created org ${name} (${companyCode})`);
+    return org;
+  }
+
+  async updateOrganization(adminId, id, data) {
+    const orgId = parseInt(id, 10);
+    const existing = await prisma.organization.findUnique({ where: { id: orgId } });
+    if (!existing) throw new ApiError(404, 'Organization not found.');
+
+    const updated = await prisma.organization.update({
+      where: { id: orgId },
+      data,
+    });
+
+    await this.logActivity(adminId, 'ORGANIZATION_UPDATE', 'Organization', `Updated org #${orgId} (${updated.name})`);
+    return updated;
+  }
+
+  /**
+   * Fuel & Travel Cost Configuration
+   */
+  async getCostConfig() {
+    const settings = await prisma.systemSetting.findMany({
+      where: {
+        key: { in: ['fuel_cost_per_liter', 'fuel_efficiency_baseline', 'travel_cost_per_km', 'platform_fee_percent'] },
+      },
+    });
+
+    const configMap = {};
+    settings.forEach((s) => {
+      configMap[s.key] = s.value;
+    });
+
+    return {
+      fuelCostPerLiter: parseFloat(configMap['fuel_cost_per_liter'] || '102.50'),
+      fuelEfficiencyBaseline: parseFloat(configMap['fuel_efficiency_baseline'] || '15.0'),
+      travelCostPerKm: parseFloat(configMap['travel_cost_per_km'] || '8.50'),
+      platformFeePercent: parseFloat(configMap['platform_fee_percent'] || '5.00'),
+    };
+  }
+
+  async updateCostConfig(adminId, { fuelCostPerLiter, fuelEfficiencyBaseline, travelCostPerKm, platformFeePercent }) {
+    const configs = [
+      { key: 'fuel_cost_per_liter', value: String(fuelCostPerLiter || 102.5), description: 'Fuel Price per Liter in INR' },
+      { key: 'fuel_efficiency_baseline', value: String(fuelEfficiencyBaseline || 15.0), description: 'Baseline Fuel Efficiency in KM/L' },
+      { key: 'travel_cost_per_km', value: String(travelCostPerKm || 8.5), description: 'Base Travel Cost per KM in INR' },
+      { key: 'platform_fee_percent', value: String(platformFeePercent || 5.0), description: 'Platform fee percentage' },
+    ];
+
+    for (const cfg of configs) {
+      await prisma.systemSetting.upsert({
+        where: { key: cfg.key },
+        update: { value: cfg.value },
+        create: { key: cfg.key, value: cfg.value, description: cfg.description, isPublic: true },
+      });
+    }
+
+    await this.logActivity(adminId, 'COST_CONFIG_UPDATE', 'Settings', 'Updated fuel and travel cost configuration');
+    return this.getCostConfig();
+  }
+
+  /**
+   * Vehicle Document & Verification
+   */
+  async verifyVehicle(adminId, vehicleId, { isVerified, status }) {
+    const id = parseInt(vehicleId, 10);
+    const vehicle = await prisma.vehicle.findUnique({ where: { id } });
+    if (!vehicle) throw new ApiError(404, 'Vehicle not found.');
+
+    const updated = await prisma.vehicle.update({
+      where: { id },
+      data: {
+        isVerified: typeof isVerified === 'boolean' ? isVerified : vehicle.isVerified,
+        status: status || vehicle.status,
+      },
+    });
+
+    await this.logActivity(
+      adminId,
+      'VEHICLE_VERIFICATION',
+      'Vehicles',
+      `Updated vehicle ${vehicle.registrationNumber} status: verified=${updated.isVerified}, status=${updated.status}`
+    );
+
+    return updated;
+  }
+
+  /**
+   * Employee Participation Dashboard
+   */
+  async getParticipationMetrics() {
+    const [
+      totalEmployees,
+      totalDrivers,
+      totalPassengers,
+      completedTrips,
+      totalRides,
+      totalOrgs,
+    ] = await Promise.all([
+      prisma.user.count({ where: { role: 'EMPLOYEE' } }),
+      prisma.user.count({ where: { role: 'EMPLOYEE', vehicles: { some: {} } } }),
+      prisma.user.count({ where: { role: 'EMPLOYEE', passengerBookings: { some: {} } } }),
+      prisma.ride.count({ where: { rideStatus: 'Completed' } }),
+      prisma.ride.count(),
+      prisma.organization.count({ where: { status: 'ACTIVE' } }),
+    ]);
+
+    const participationRate = totalEmployees > 0 ? (((totalDrivers + totalPassengers) / totalEmployees) * 100).toFixed(1) : '0';
+    const completionRate = totalRides > 0 ? ((completedTrips / totalRides) * 100).toFixed(1) : '0';
+
+    return {
+      totalEmployees,
+      totalDrivers,
+      totalPassengers,
+      participationRate: parseFloat(participationRate),
+      completedTrips,
+      totalRides,
+      completionRate: parseFloat(completionRate),
+      totalOrgs,
+    };
+  }
 }
 
 export default new AdminService();

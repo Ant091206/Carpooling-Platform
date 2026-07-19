@@ -129,6 +129,7 @@ model User {
   matchPreference          MatchPreference?       @relation("UserMatchPreferences")
   driverTrips              Trip[]                 @relation("DriverTrips")
   passengerTrips           Trip[]                 @relation("PassengerTrips")
+  sentChatMessages         ChatMessage[]          @relation("SentChatMessages")
 
   @@unique([organization, employeeId], name: "idx_user_org_emp")
   @@index([role], map: "idx_user_role")
@@ -245,6 +246,7 @@ model Ride {
   sourceMatches       RideMatch[]  @relation("SourceRideMatches")
   targetMatches       RideMatch[]  @relation("TargetRideMatches")
   trips               Trip[]
+  chatMessages        ChatMessage[]
 
   @@index([driverId], map: "idx_rides_driver_id")
   @@index([departureTime], map: "idx_rides_departure_time")
@@ -727,4 +729,22 @@ model MatchPreference {
   @@index([userId], map: "idx_match_pref_user_id")
   @@map("match_preferences")
 }
+
+model ChatMessage {
+  id        Int      @id @default(autoincrement()) @db.UnsignedInt
+  rideId    Int      @map("ride_id") @db.UnsignedInt
+  senderId  Int      @map("sender_id") @db.UnsignedInt
+  text      String   @db.Text
+  time      String   @db.VarChar(50)
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+
+  ride   Ride @relation(fields: [rideId], references: [id], onDelete: Cascade)
+  sender User @relation("SentChatMessages", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([rideId], map: "idx_chat_ride_id")
+  @@index([senderId], map: "idx_chat_sender_id")
+  @@map("chat_messages")
+}
+
 

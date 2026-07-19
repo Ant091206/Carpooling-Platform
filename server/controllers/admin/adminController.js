@@ -123,6 +123,70 @@ class AdminController {
       next(err);
     }
   }
+
+  async getOrganizations(req, res, next) {
+    try {
+      const { search, status, page, limit } = req.query;
+      const data = await adminService.getOrganizations({ search, status, page, limit });
+      res.status(200).json(successResponse('Organizations retrieved successfully.', data));
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async createOrganization(req, res, next) {
+    try {
+      const org = await adminService.createOrganization(req.user.id, req.body);
+      res.status(201).json(successResponse('Organization created successfully.', org));
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async updateOrganization(req, res, next) {
+    try {
+      const org = await adminService.updateOrganization(req.user.id, req.params.id, req.body);
+      res.status(200).json(successResponse('Organization updated successfully.', org));
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getCostConfig(req, res, next) {
+    try {
+      const config = await adminService.getCostConfig();
+      res.status(200).json(successResponse('Cost configuration retrieved successfully.', config));
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async updateCostConfig(req, res, next) {
+    try {
+      const config = await adminService.updateCostConfig(req.user.id, req.body);
+      res.status(200).json(successResponse('Cost configuration updated successfully.', config));
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async verifyVehicle(req, res, next) {
+    try {
+      const vehicle = await adminService.verifyVehicle(req.user.id, req.params.id, req.body);
+      res.status(200).json(successResponse('Vehicle verification status updated successfully.', vehicle));
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getParticipationMetrics(req, res, next) {
+    try {
+      const metrics = await adminService.getParticipationMetrics();
+      res.status(200).json(successResponse('Participation metrics retrieved successfully.', metrics));
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 export default new AdminController();

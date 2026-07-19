@@ -7,6 +7,7 @@ import Badge from '../components/ui/Badge.jsx';
 import Button from '../components/ui/Button.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useSocket } from '../context/SocketContext.jsx';
+import LiveTrackingMap from '../components/maps/LiveTrackingMap.jsx';
 import tripService from '../services/trip.service.js';
 import toast from 'react-hot-toast';
 
@@ -20,6 +21,9 @@ export default function TripDetail() {
   const [isDriver, setIsDriver] = useState(false);
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
+  const [typingUser, setTypingUser] = useState(null);
+  const [showCallModal, setShowCallModal] = useState(false);
+  const [callStatus, setCallStatus] = useState('Initiating encrypted voice call...');
   
   const chatEndRef = useRef(null);
 
@@ -41,20 +45,44 @@ export default function TripDetail() {
     fetchTripDetails();
   }, [tripId, user]);
 
-  // Handle socket connections and join chat room
+  // Handle socket connections, chat room, history and voice calls
   useEffect(() => {
     if (socket && trip) {
-      // Join chat room based on rideId so all passengers in the ride share the room
       socket.emit('join_ride_chat', trip.rideId);
       
+      const handleHistory = (history) => {
+        setMessages(history);
+      };
+
       const handleNewMessage = (msg) => {
         setMessages((prev) => [...prev, msg]);
       };
 
+      const handleUserTyping = ({ userName }) => {
+        setTypingUser(userName);
+      };
+
+      const handleUserStopTyping = () => {
+        setTypingUser(null);
+      };
+
+      const handleIncomingCall = ({ callerName }) => {
+        setCallStatus(`Incoming call from ${callerName}...`);
+        setShowCallModal(true);
+      };
+
+      socket.on('chat_history', handleHistory);
       socket.on('new_message', handleNewMessage);
+      socket.on('user_typing', handleUserTyping);
+      socket.on('user_stop_typing', handleUserStopTyping);
+      socket.on('voice_call_incoming', handleIncomingCall);
 
       return () => {
+        socket.off('chat_history', handleHistory);
         socket.off('new_message', handleNewMessage);
+        socket.off('user_typing', handleUserTyping);
+        socket.off('user_stop_typing', handleUserStopTyping);
+        socket.off('voice_call_incoming', handleIncomingCall);
       };
     }
   }, [socket, trip]);
@@ -279,13 +307,35 @@ export default function TripDetail() {
             )}
           </Card>
 
+          {/* Live Google Maps Route Tracking Component */}
+          <LiveTrackingMap 
+            pickupName={trip.ride.pickupName}
+            destinationName={trip.ride.destinationName}
+            status={trip.status}
+          />
+
           {/* Real-time Socket.io Chat Module */}
           <Card className="p-6 bg-white space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-heading text-xl font-extrabold text-slate-950 flex items-center gap-2">
                 <MessageCircle className="h-5 w-5 text-emerald-700" /> Trip Chat Room
               </h3>
-              <Badge variant="success">Live Connected</Badge>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setCallStatus(`Calling ${isDriver ? trip.passenger.name : trip.driver.name}...`);
+                    setShowCallModal(true);
+                    if (socket) {
+                      socket.emit('voice_call_initiate', { rideId: trip.rideId, callerId: user.id, callerName: user.name });
+                    }
+                  }}
+                  className="flex items-center gap-1.5 rounded-xl bg-emerald-100 text-emerald-800 px-3 py-1.5 text-xs font-bold transition hover:bg-emerald-200"
+                >
+                  <Phone className="h-3.5 w-3.5" />
+                  <span>Voice Call</span>
+                </button>
+                <Badge variant="success">Live Connected</Badge>
+              </div>
             </div>
 
             <div className="h-64 rounded-2xl border border-slate-100 p-4 overflow-y-auto bg-slate-50 flex flex-col gap-3">
@@ -308,6 +358,11 @@ export default function TripDetail() {
                     <span className="text-[9px] opacity-50 text-right mt-1">{msg.time}</span>
                   </div>
                 ))
+              )}
+              {typingUser && (
+                <div className="text-[10px] text-emerald-700 font-bold italic animate-pulse">
+                  {typingUser} is typing...
+                </div>
               )}
               <div ref={chatEndRef} />
             </div>
@@ -376,6 +431,37 @@ export default function TripDetail() {
           </Card>
         </div>
       </div>
+
+      {/* Voice Call Modal Overlay */}
+      {showCallModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-3xl bg-slate-900 text-white p-8 text-center space-y-6 shadow-2xl border border-slate-800">
+            <div className="relative mx-auto h-20 w-20 rounded-full bg-emerald-600/30 p-4 flex items-center justify-center animate-pulse">
+              <Phone className="h-10 w-10 text-emerald-400 animate-bounce" />
+            </div>
+
+            <div>
+              <h4 className="font-heading text-lg font-extrabold text-white">Voice Call Session</h4>
+              <p className="text-xs text-emerald-400 mt-1">{callStatus}</p>
+              <p className="text-[10px] text-slate-400 mt-3">Encrypted employee peer-to-peer audio channel</p>
+            </div>
+
+            <div className="flex justify-center gap-4 pt-2">
+              <button 
+                onClick={() => {
+                  setShowCallModal(false);
+                  if (socket) socket.emit('voice_call_end', { rideId: trip.rideId });
+                  toast.success('Voice call ended');
+                }}
+                className="flex items-center gap-2 rounded-full bg-red-600 px-6 py-3 text-xs font-bold text-white shadow-lg hover:bg-red-700 transition"
+              >
+                <Phone className="h-4 w-4 rotate-[135deg]" />
+                End Call
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </PageShell>
   );
 }

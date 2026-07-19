@@ -102,20 +102,32 @@ class ReportsService {
           },
           orderBy: { createdAt: 'desc' }
         });
-        return rides.map(r => ({
-          'Ride ID': r.id,
-          'Driver Name': r.driver?.name || 'N/A',
-          'Driver Email': r.driver?.email || 'N/A',
-          'Vehicle': `${r.vehicle?.model} (${r.vehicle?.registrationNumber || 'N/A'})`,
-          'Pickup Point': r.pickupName,
-          'Destination': r.destinationName,
-          'Departure Time': r.departureTime,
-          'Available Seats': r.availableSeats,
-          'Fare (INR)': parseFloat(r.farePerSeat),
-          'Distance (km)': parseFloat(r.distanceKm || 0),
-          'Status': r.rideStatus,
-          'Created At': r.createdAt
-        }));
+        return rides.map(r => {
+          const distance = parseFloat(r.distanceKm || 0);
+          const fare = parseFloat(r.farePerSeat || 0);
+          const fuelCost = distance > 0 ? ((distance / 15.0) * 102.50).toFixed(2) : '0.00';
+          const travelCost = distance > 0 ? (distance * 8.50).toFixed(2) : '0.00';
+          const costPerKm = distance > 0 ? (fare / distance).toFixed(2) : '0.00';
+
+          return {
+            'Ride ID': r.id,
+            'Driver Name': r.driver?.name || 'N/A',
+            'Driver Email': r.driver?.email || 'N/A',
+            'Vehicle': `${r.vehicle?.model} (${r.vehicle?.registrationNumber || 'N/A'})`,
+            'Pickup Point': r.pickupName,
+            'Destination': r.destinationName,
+            'Departure Time': r.departureTime,
+            'Available Seats': r.availableSeats,
+            'Fare (INR)': fare,
+            'Distance (km)': distance,
+            'Travel Cost (INR)': parseFloat(travelCost),
+            'Fuel Cost (INR)': parseFloat(fuelCost),
+            'Cost Per KM (INR)': parseFloat(costPerKm),
+            'Fuel Efficiency (KM/L)': 15.0,
+            'Status': r.rideStatus,
+            'Created At': r.createdAt
+          };
+        });
       }
 
       case 'PAYMENT': {

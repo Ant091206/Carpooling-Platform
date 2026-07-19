@@ -23,6 +23,7 @@ import Reports from '../pages/Reports.jsx';
 import Settings from '../pages/Settings.jsx';
 import Notifications from '../pages/Notifications.jsx';
 import NotificationSettings from '../pages/NotificationSettings.jsx';
+import AdminDashboard from '../pages/admin/AdminDashboard.jsx';
 import SystemDashboard from '../pages/system/SystemDashboard.jsx';
 import SystemHealth from '../pages/system/SystemHealth.jsx';
 import SystemLogs from '../pages/system/SystemLogs.jsx';
@@ -149,8 +150,8 @@ export const appRoutes = [
       { path: 'notifications',   element: protect(Notifications) },
       { path: 'settings/notifications', element: protect(NotificationSettings) },
 
-      // Module 15 — System & DevOps Administration
-      { path: 'admin',           element: protectAdmin(SystemDashboard) },
+      // Module 13 — Enterprise Admin Dashboard
+      { path: 'admin',           element: protectAdmin(AdminDashboard) },
       { path: 'system',          element: protectAdmin(SystemDashboard) },
       { path: 'system/health',   element: protectAdmin(SystemHealth) },
       { path: 'system/logs',     element: protectAdmin(SystemLogs) },
